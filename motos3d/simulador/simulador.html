@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulador educativo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/simulador.css">
+</head>
+<body>
+<div id="ws-tag"></div>
+<div id="app">
+  <div id="canvas-wrap"></div>
+  <div id="ws-vig"></div>
+  <div id="ws-banner" role="status"><b>MODO TALLER</b><span class="intro">Arrastra una pieza para sacarla de la moto · tócala para ver qué pasa sin ella</span><span class="cnt">Moto completa</span></div>
+  <div id="loading">Cargando modelo 3D...</div>
+
+  <header id="topbar">
+    <div>
+      <h1>Simulador educativo</h1>
+      <h1>Modelo: Pulsar NS200 Bajaj</h1>
+      <p>Arrastra para rotar, rueda para acercar, toca una pieza para identificarla</p>
+    </div>
+    <div class="top-actions">
+      <button id="btn-systems" class="chip">Sistemas</button>
+      <button id="btn-taller" class="chip">Modo taller</button>
+      <button id="btn-cut" class="chip">Ver interior del motor</button>
+      <button id="btn-flip" class="chip">Otro lado</button>
+      <button id="btn-home" class="chip">Vista general</button>
+    </div>
+  </header>
+
+  <aside id="left" class="panel" aria-label="Sistemas y piezas">
+    <h2>Sistemas</h2>
+    <div id="system-list"></div>
+    <h2 id="parts-title">Piezas</h2>
+    <div id="part-list"></div>
+  </aside>
+
+  <aside id="info" class="panel" aria-live="polite">
+    <button id="info-close" class="chip" aria-label="Cerrar información">Cerrar</button>
+    <div id="ws-box" hidden></div>
+    <div id="info-body"></div>
+  </aside>
+
+  <section id="dock" aria-label="Simulador de funcionamiento">
+    <div id="dock-head">
+      <strong>Simulador de funcionamiento</strong>
+      <button id="dock-toggle" class="chip" aria-expanded="true">Minimizar</button>
+    </div>
+    <div id="dock-body">
+      <div class="gauges">
+        <div class="g-gear"><b id="g-gear">N</b><small>marcha</small></div>
+        <div class="g-rpm">
+          <div class="num"><span id="g-rpm">0</span> <small>rpm</small></div>
+          <div class="rpm-bar"><i id="rpm-fill"></i></div>
+        </div>
+        <div class="g-speed"><b id="g-speed">0</b> <small>km/h</small></div>
+      </div>
+      <div id="g-cycle" title="Ciclo de cuatro tiempos">
+        <span>Admisión</span><span>Compresión</span><span>Explosión</span><span>Escape</span>
+      </div>
+      <div class="controls">
+        <div class="grp" role="group" aria-label="Motor">
+          <p class="grp-title">Motor</p>
+          <div class="grp-row"><button id="btn-engine" class="btn" aria-pressed="false">Encender motor</button></div>
+          <label class="thr">Acelerador
+            <input type="range" id="thr" min="0" max="100" value="0"><output id="thr-out">0%</output>
+          </label>
+        </div>
+        <div class="grp" role="group" aria-label="Caja de cambios">
+          <p class="grp-title">Marcha</p>
+          <div class="gears" id="gears" role="group" aria-label="Marcha">
+            <button class="btn sel" data-g="0">N</button>
+            <button class="btn" data-g="1">1</button>
+            <button class="btn" data-g="2">2</button>
+            <button class="btn" data-g="3">3</button>
+            <button class="btn" data-g="4">4</button>
+            <button class="btn" data-g="5">5</button>
+            <button class="btn" data-g="6">6</button>
+          </div>
+        </div>
+        <div class="grp" role="group" aria-label="Palancas del manillar">
+          <p class="grp-title">Palancas del manillar</p>
+          <div class="grp-row">
+            <button id="btn-clutch" class="btn hold lever" aria-label="Embrague: mantén pulsado" title="Embrague: mantén pulsado (Shift)">
+              <svg class="lv-ico" viewBox="0 0 40 26" aria-hidden="true"><rect class="lv-grip" x="1" y="10" width="14" height="10" rx="5"/><path class="lv-arm" d="M12 15 L36 5"/><circle class="lv-pivot" cx="12" cy="15" r="3.2"/></svg>
+              <span class="lv-txt"><b>Embrague</b><small>Shift</small></span>
+            </button>
+            <button id="btn-brake" class="btn hold lever brake" aria-label="Freno: mantén pulsado" title="Freno: mantén pulsado (Espacio)">
+              <svg class="lv-ico" viewBox="0 0 40 26" aria-hidden="true"><rect class="lv-grip" x="1" y="10" width="14" height="10" rx="5"/><path class="lv-arm" d="M12 15 L36 5"/><circle class="lv-pivot" cx="12" cy="15" r="3.2"/></svg>
+              <span class="lv-txt"><b>Freno</b><small>Espacio</small></span>
+            </button>
+          </div>
+        </div>
+        <div class="grp opts" role="group" aria-label="Opciones">
+          <label class="slow"><input type="checkbox" id="slow"> Cámara lenta</label>
+          <label class="thr snd">Volumen
+            <input type="range" id="vol" min="0" max="100" value="70" aria-label="Volumen del sonido"><output id="vol-out">70%</output>
+          </label>
+          <label class="slow"><input type="checkbox" id="bg-taller" checked> Fondo de taller</label>
+          <button id="btn-mute" class="btn" aria-pressed="false" title="Silenciar o activar el sonido (M)">Silenciar</button>
+        </div>
+      </div>
+      <p id="status"></p>
+      <p class="keys">Teclas: E enciende, W acelera, Shift embrague, Espacio freno, flechas arriba y abajo cambian de marcha, M silencia el sonido. Las velocidades de giro se escalan para que se vean bien.</p>
+    </div>
+  </section>
+</div>
+
+<!-- Datos (modelo 3D y sonido). Deben cargarse antes del script principal -->
+<script src="assets/modelo-moto.js"></script>
+<script src="assets/sonido-arranque.js"></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+
+const DESCRIPTIONS = {"Motor_Carter": "Carcasa del motor de 199,4 cc, monocilíndrico y refrigerado por líquido. Aquí se ve semitransparente para mostrar el interior.", "Deposito_Combustible": "Capacidad de 12 litros, sin reserva ni llave de paso. Conviene mantener siempre al menos 3 litros.", "Rueda_Delantera_Neumatico": "100/80-17 sin cámara. Presión recomendada: 25 PSI.", "Rueda_Trasera_Neumatico": "130/70-17 sin cámara. Presión: 28 PSI solo y 32 PSI con pasajero.", "Freno_Delantero_Disco": "Freno de disco con ABS de doble canal: evita que la rueda se bloquee al frenar fuerte.", "Freno_Trasero_Disco": "Freno de disco trasero, también con ABS.", "Cadena_Transmision": "Cadena sellada con retenes «O»: lleva la fuerza del piñón del motor a la corona de la rueda trasera. Holgura estándar 15–25 mm; lubricar cada 500 km. En el simulador sus eslabones se mueven con la rueda.", "Suspension_Trasera_Amortiguador": "Monoamortiguador trasero con gas (Nitrox) y resorte.", "Refrig_Radiador": "Enfría el líquido del motor. El ventilador arranca a 95 °C y se detiene a 90 °C; el sistema lleva 1000 ml de refrigerante.", "Faro_Delantero": "Se enciende solo al arrancar el motor (AHO); no hay interruptor de luces.", "Piloto_Trasero": "Luz trasera y de freno con tecnología LED.", "Tablero_Carcasa": "Cuentarrevoluciones analógico y pantalla LCD con marcha, velocidad, odómetro, combustible y reloj.", "Manillar_Palancas": "Palancas de freno (derecha) y de embrague (izquierda): al apretarlas accionan el freno delantero y el embrague.", "Motor_Piston": "Pistón: sube y baja en el cilindro comprimiendo la mezcla y recibiendo la explosión (72 mm de diámetro, 49 mm de carrera). Pieza reconstruida.", "Motor_Biela": "Une el pistón con el cigüeñal y convierte el vaivén en giro. Pieza reconstruida para la simulación.", "Motor_Ciguenal": "Recibe la fuerza de la biela y la manda al embrague. Pieza reconstruida para la simulación.", "Motor_Cilindro": "Camisa donde se mueve el pistón. Cambia de color en cada tiempo. Pieza reconstruida para la simulación.", "Motor_Bujia": "Produce la chispa al final de la compresión. Distancia entre electrodos: 0,8–0,9 mm.", "Embrague_Discos_Friccion": "Discos que se pegan a los de acero para transmitir la fuerza. Pieza reconstruida.", "Embrague_Discos_Acero": "Se separan de los de fricción al apretar la palanca. Pieza reconstruida.", "Cadena_Pinon_Delantero": "Piñón pequeño en la salida de la caja de cambios; arrastra la cadena. Pieza reconstruida.", "Asiento": "Asiento del piloto; se retira quitando primero el del pasajero.", "Chasis_Principal": "Estructura principal que une motor, suspensiones y ruedas.", "Rueda_Delantera_Rin": "Aro de aleación que sostiene el neumático y transmite al suelo la fuerza de dirección y frenado.", "Rueda_Delantera_Franja": "Franja roja decorativa del rin; además hace más visible el giro de la rueda.", "Rueda_Delantera_Buje": "Centro de la rueda. Gira sobre rodamientos alrededor del eje y sostiene el disco de freno.", "Rueda_Delantera_Eje": "Eje con tuerca que une la rueda a la horquilla y le permite girar libremente.", "Rueda_Delantera_Separador": "Casquillo que mantiene la distancia correcta entre la rueda y la horquilla.", "Rueda_Delantera_Valvula": "Válvula por donde se infla el neumático sin cámara y se conserva la presión.", "Freno_Delantero_Caliper": "Pinza hidráulica: al apretar la palanca empuja las pastillas contra el disco y frena la rueda.", "Freno_Delantero_Caliper_Soporte": "Soporte que fija la pinza a la horquilla y la mantiene alineada con el disco.", "Freno_Delantero_Caliper_Fijacion": "Pernos que sujetan la pinza; deben apretarse con el torque indicado.", "Suspension_Delantera_Barras": "Barras deslizantes de la horquilla: se hunden dentro de las botellas y absorben los golpes.", "Suspension_Delantera_Barras_Internas": "Tubos cromados internos de la horquilla, sobre los que se desliza la parte inferior.", "Suspension_Delantera_Botellas": "Tubos exteriores de la horquilla, con aceite: amortiguan y guían el movimiento de las barras.", "Suspension_Delantera_Tijas": "Piezas que sujetan la horquilla al chasis y permiten girar el manillar.", "Cadena_Pinon_Trasero": "Corona: piñón grande atornillado a la rueda trasera; recibe el giro de la cadena y mueve la moto.", "Cadena_Proteccion": "Protector de cadena: cubre parte de la cadena para evitar salpicaduras de grasa y que se enrede la ropa.", "Suspension_Trasera_Resorte": "Resorte del monoamortiguador: absorbe los golpes del terreno y sostiene el peso de la moto.", "Suspension_Trasera_Soporte": "Soporte que une el monoamortiguador al chasis y al basculante.", "Basculante_Principal": "Brazo que une la rueda trasera al chasis y pivota para que la suspensión trabaje.", "Basculante_Soporte": "Refuerzo del basculante que también ayuda a guiar la cadena.", "Basculante_Extremo": "Extremo del basculante donde se monta el eje trasero y los tensores de cadena.", "Basculante_Travesano": "Barra transversal que da rigidez al basculante.", "Basculante_Eje_Pivote": "Eje sobre el que gira el basculante al subir y bajar la rueda trasera.", "Chasis_Guardabarros_Delantero": "Cubre la rueda delantera y evita que salpique agua y barro al piloto y al motor.", "Chasis_Guardabarros_Trasero": "Guardabarros y cola: cubren la rueda trasera y sostienen el piloto trasero y la placa.", "Chasis_Agarradera": "Agarradera trasera: el pasajero se sujeta aquí.", "Chasis_Tornilleria": "Tornillos y pernos que unen las piezas de la moto.", "Chasis_Placa_Trasera": "Soporte y placa de matrícula trasera.", "Chasis_Cubierta_Subchasis": "Tapa lateral trasera que cubre el subchasis, la batería y la caja de herramientas.", "Chasis_Tubo_Lateral": "Tubo lateral del chasis: parte de la estructura que soporta el motor y el piloto.", "Refrig_Soporte": "Soporte que sujeta el radiador al chasis.", "Refrig_Cubierta": "Cubierta que canaliza el aire hacia el radiador.", "Refrig_Vaso_Expansion": "Vaso de expansión: recibe el exceso de refrigerante al calentarse y se rellena por aquí, con el motor frío.", "Refrig_Nivel": "Ventana para ver el nivel de refrigerante, que debe estar entre MIN y MAX.", "Motor_Culata_Carcasa": "Cubierta del cilindro y la culata, donde están las válvulas y la bujía; disipa el calor.", "Motor_Tapa_Transparente": "Tapa lateral del motor. Con «Ver interior del motor» se hace transparente.", "Motor_Tapa_Logo": "Tapa del motor con el logo DTS-i; en ella está el tapón de llenado de aceite.", "Motor_Tapa_Culata": "Tapa superior de la culata: protege las válvulas y sella el aceite.", "Motor_Mirilla_Aceite": "Ventana para revisar el nivel de aceite: debe estar entre la marca superior e inferior.", "Transmision_Palanca_Cambios": "Palanca de cambios: con el pie se sube (hacia arriba, 5 veces) o se baja (1 vez hacia abajo) de marcha.", "Escape_Silenciador": "Reduce el ruido de los gases de escape y contiene el catalizador que limpia las emisiones.", "Escape_Colector": "Tubo que recoge los gases quemados del cilindro y los lleva al silenciador.", "Escape_Silenciador_Soporte": "Soporte que sujeta el silenciador al chasis.", "Escape_Punta": "Salida final de los gases de escape.", "Deposito_Tapa": "Tapa del depósito; se abre con la llave de contacto y cierra con un clic.", "Deposito_Tapa_Aro": "Aro metálico que sella el cuello del depósito.", "Carenado_Deposito": "Cubierta blanca del depósito: protege la pintura y da la forma deportiva.", "Carenado_Quilla": "Quilla (belly pan): protege la parte baja del motor y mejora la aerodinámica.", "Carenado_Lateral": "Carenados y tapas laterales: cubren el chasis y el motor de polvo y agua.", "Carenado_Panel_Deposito": "Panel lateral del depósito que cubre el conducto de aire y el radiador.", "Carenado_Visor": "Visor que rodea el faro y desvía el aire.", "Asiento_Pasajero": "Asiento del pasajero; se retira con la llave y debajo va el kit de herramientas.", "Estribo_Izquierdo": "Apoyo para el pie izquierdo del piloto.", "Estribo_Izquierdo_Soporte": "Soporte del estribo o estribo del pasajero.", "Faro_Delantero_Lente": "Lente transparente del faro; protege la luz y la dirige hacia adelante.", "Faro_Delantero_Reflector": "Superficie cromada que refleja y concentra la luz del foco.", "Faro_Delantero_Luz": "Luz del faro; se enciende sola al arrancar el motor.", "Faro_Delantero_Foco": "Foco (bombilla) del faro delantero.", "Direccional_Delantera": "Luz intermitente delantera: destella para avisar que vas a girar.", "Direccional_Trasera": "Luz intermitente trasera: destella para avisar que vas a girar.", "Piloto_Trasero_Lente": "Lente del piloto trasero, protege el LED.", "Manillar": "Manillar: sirve para dirigir la moto y concentra los mandos.", "Manillar_Espejos": "Espejos retrovisores: permiten ver hacia atrás sin girar la cabeza.", "Manillar_Punos": "Puños: donde se sujetan las manos; el derecho es el acelerador.", "Manillar_Interruptor": "Interruptor de paro del motor (kill switch): apaga o habilita el motor.", "Manillar_Mandos_Izq": "Mandos izquierdos: luz alta/baja, direccionales, claxon y ráfaga.", "Manillar_Mandos_Der": "Mandos derechos: botón de arranque e interruptor de paro.", "Tablero_Pantalla": "Pantalla LCD del tablero: velocidad, marcha, odómetro, trip, combustible y reloj.", "Tablero_Testigo_Neutro": "Se enciende en verde cuando la caja está en neutro.", "Tablero_Testigo_Luz_Alta": "Se enciende en azul cuando está activa la luz alta.", "Tablero_Testigo_Alerta": "Luz roja de aviso (aceite, batería o temperatura).", "Arnes_Electrico": "Conjunto de cables que une batería, ECU, luces y sensores.", "Manillar_Contrapesos": "Pesas en los extremos del manillar: reducen las vibraciones que llegan a las manos.", "Manillar_Tubo": "Tubo del manillar: se sujeta a la dirección y sostiene puños, mandos y espejos.", "Manillar_Mandos": "Carcasas de los mandos: alojan los interruptores de luces, direccionales, claxon, arranque y paro.", "Manillar_Bomba_Freno": "Bomba del freno delantero con su depósito de líquido: convierte la fuerza de la palanca en presión hidráulica.", "Chasis_Direccion_Tija": "Tija y columna de dirección: unen la horquilla al chasis y giran para dirigir la moto.", "Chasis_Direccion_Abrazadera": "Abrazaderas que sujetan el manillar a la tija.", "Cadena_Placas": "Placas laterales de la cadena sellada. En el simulador la cadena se anima con eslabones que giran con la rueda.", "Cadena_Rodillos": "Rodillos y pasadores de la cadena: engranan en los dientes de los piñones. Holgura estándar 15–25 mm.", "Bateria": "Batería 12 V 8 Ah sin mantenimiento, bajo el asiento del piloto: alimenta el arranque y las luces con el motor apagado. Pieza reconstruida.", "Componente_Electrico_ECU": "Computadora del motor: controla inyección y encendido, y bloquea el arranque con el pie de apoyo abajo. Pieza reconstruida.", "Componente_Electrico_Regulador": "Regulador-rectificador con aletas: convierte la corriente del alternador y mantiene 12 V para cargar la batería. Pieza reconstruida.", "Componente_Electrico_Bobina": "Bobina de encendido: eleva el voltaje para que la bujía produzca la chispa. Pieza reconstruida.", "Componente_Electrico_Motor_Arranque": "Motor eléctrico que hace girar el cigüeñal al pulsar el botón de arranque. Pieza reconstruida.", "Estribo_Izquierdo_Pasador": "Pasador que sujeta el estribo y le permite plegarse si se golpea.", "Estribo_Izquierdo_Perno": "Perno que fija el soporte del estribo al chasis.", "Refrig_Tapa_Radiador": "Tapa del radiador: regula la presión del sistema (no abrir con el motor caliente). El refrigerante se rellena por el vaso de expansión.", "Suspension_Trasera_Fijacion_Superior": "Fijación superior del monoamortiguador al chasis.", "Suspension_Trasera_Arandela": "Arandela que reparte la presión de la fijación del amortiguador.", "Chasis_Soporte_Deposito": "Soporte lateral que sujeta el depósito al chasis.", "Freno_Mangueras": "Mangueras de freno: llevan el líquido a presión desde la bomba hasta las pinzas delantera y trasera.", "Chasis_Guardabarros_Delantero_Detalle": "Detalle blanco del guardabarros delantero, que cubre la rueda de salpicaduras.", "Tablero_Aro": "Aro que enmarca el cuentarrevoluciones.", "Tablero_Eje_Aguja": "Eje central sobre el que gira la aguja.", "Tablero_Lente": "Lente transparente que protege la esfera del cuentarrevoluciones.", "Tablero_Esfera": "Esfera con la escala de revoluciones (x1000 rpm).", "Tablero_Aguja": "Aguja que indica las revoluciones del motor.", "Tablero_Botones": "Botones M (modo) y S (ajuste): cambian entre odómetro, trip, consumo y reloj.", "Motor_Tapa_Logo_Rojo": "Parte del motor monocilíndrico de 199,4 cc.", "Motor_Tapa_Logo_Blanco": "Parte del motor monocilíndrico de 199,4 cc.", "Motor_Mirilla_Aceite_Marca": "Parte del motor monocilíndrico de 199,4 cc.", "Piloto_Trasero_Lente_Superior": "Parte de la luz trasera LED: te hace visible de noche y al frenar.", "Piloto_Trasero_Reflector": "Parte de la luz trasera LED: te hace visible de noche y al frenar.", "Faro_Delantero_Reflector_Interno": "Parte del faro: produce y dirige la luz hacia adelante.", "Piloto_Trasero_Soporte": "Parte de la luz trasera LED: te hace visible de noche y al frenar.", "Faro_Delantero_Base": "Parte del faro: produce y dirige la luz hacia adelante.", "Carenado_Cola_Blanco": "Panel de plástico del carenado: da forma aerodinámica, protege componentes del polvo y el agua.", "Carenado_Cola_Franja": "Panel de plástico del carenado: da forma aerodinámica, protege componentes del polvo y el agua.", "Carenado_Lateral_Negro": "Panel de plástico del carenado: da forma aerodinámica, protege componentes del polvo y el agua.", "Direccional_Delantera_Caja": "Parte de la luz direccional (intermitente).", "Direccional_Delantera_Lente": "Parte de la luz direccional (intermitente).", "Direccional_Delantera_Reflector": "Parte de la luz direccional (intermitente).", "Direccional_Trasera_Caja": "Parte de la luz direccional (intermitente).", "Direccional_Trasera_Lente": "Parte de la luz direccional (intermitente).", "Direccional_Trasera_Reflector": "Parte de la luz direccional (intermitente).", "Rueda_Trasera_Rin": "Parte de la rueda trasera, que recibe la fuerza de la cadena y empuja la moto.", "Freno_Trasero_Caliper_Soporte": "Parte del freno de disco: frena la rueda por fricción y trabaja con el ABS.", "Freno_Trasero_Caliper": "Parte del freno de disco: frena la rueda por fricción y trabaja con el ABS.", "Freno_Trasero_Caliper_Fijacion": "Parte del freno de disco: frena la rueda por fricción y trabaja con el ABS.", "Rueda_Trasera_Buje": "Parte de la rueda trasera, que recibe la fuerza de la cadena y empuja la moto.", "Rueda_Trasera_Valvula": "Parte de la rueda trasera, que recibe la fuerza de la cadena y empuja la moto.", "Faro_Delantero_Carcasa": "Parte del faro: produce y dirige la luz hacia adelante.", "Manillar_Espejos_Cristal": "Parte del manillar y sus mandos.", "Tablero_Marco": "Parte del tablero de instrumentos.", "Rueda_Trasera_Franja": "Parte de la rueda trasera, que recibe la fuerza de la cadena y empuja la moto.", "Arnes_Cable_Bateria_Regulador": "Cable del arnés: lleva corriente o señales entre componentes (rojo: potencia; amarillo: encendido y ECU; azul: luces; verde: mandos del manillar). Cable reconstruido.", "Arnes_Cable_Bateria_ECU": "Cable del arnés: lleva corriente o señales entre componentes (rojo: potencia; amarillo: encendido y ECU; azul: luces; verde: mandos del manillar). Cable reconstruido.", "Arnes_Cable_Arranque": "Cable del arnés: lleva corriente o señales entre componentes (rojo: potencia; amarillo: encendido y ECU; azul: luces; verde: mandos del manillar). Cable reconstruido.", "Arnes_Cable_Bobina": "Cable del arnés: lleva corriente o señales entre componentes (rojo: potencia; amarillo: encendido y ECU; azul: luces; verde: mandos del manillar). Cable reconstruido.", "Arnes_Cable_Faro": "Cable del arnés: lleva corriente o señales entre componentes (rojo: potencia; amarillo: encendido y ECU; azul: luces; verde: mandos del manillar). Cable reconstruido.", "Arnes_Cable_Tablero": "Cable del arnés: lleva corriente o señales entre componentes (rojo: potencia; amarillo: encendido y ECU; azul: luces; verde: mandos del manillar). Cable reconstruido.", "Arnes_Cable_Mando_Izq": "Cable del arnés: lleva corriente o señales entre componentes (rojo: potencia; amarillo: encendido y ECU; azul: luces; verde: mandos del manillar). Cable reconstruido.", "Arnes_Cable_Mando_Der": "Cable del arnés: lleva corriente o señales entre componentes (rojo: potencia; amarillo: encendido y ECU; azul: luces; verde: mandos del manillar). Cable reconstruido.", "Arnes_Cable_Piloto": "Cable del arnés: lleva corriente o señales entre componentes (rojo: potencia; amarillo: encendido y ECU; azul: luces; verde: mandos del manillar). Cable reconstruido."};
+const MODEL_B64 = window.ASSETS.MODEL_B64;
+
+const STARTER_MP3_B64 = window.ASSETS.STARTER_MP3_B64;
+
+/* ------------------------------------------------------------------ *
+ *  Datos educativos
+ * ------------------------------------------------------------------ */
+const PRETTY = {"Cadena_Proteccion": "Protector de cadena", "Asiento_Pasajero": "Asiento del pasajero", "Chasis_Principal": "Chasis principal", "Escape_Silenciador_Soporte": "Soporte del silenciador", "Motor_Carter": "Carcasa del motor (transparente)", "Motor_Tapa_Logo": "Tapa del motor con logo", "Motor_Tapa_Logo_Rojo": "Detalle rojo de la tapa del motor", "Motor_Tapa_Logo_Blanco": "Detalle blanco de la tapa del motor", "Motor_Mirilla_Aceite": "Mirilla del nivel de aceite", "Motor_Mirilla_Aceite_Marca": "Marca de la mirilla de aceite", "Transmision_Palanca_Cambios": "Palanca de cambios", "Escape_Colector": "Colector de escape", "Motor_Tapa_Culata": "Tapa de la culata", "Estribo_Izquierdo_Soporte": "Soporte del estribo izquierdo", "Estribo_Izquierdo_Pasador": "Pasador del estribo izquierdo", "Motor_Tapa_Transparente": "Tapa del motor (transparente)", "Motor_Culata_Carcasa": "Cilindro y culata (carcasa transparente)", "Basculante_Travesano": "Travesaño del basculante", "Estribo_Izquierdo_Perno": "Perno del estribo izquierdo", "Refrig_Tapa_Radiador": "Tapa del radiador", "Refrig_Radiador": "Radiador", "Deposito_Tapa": "Tapa del depósito", "Deposito_Tapa_Aro": "Aro de la tapa del depósito", "Asiento": "Asiento del piloto", "Piloto_Trasero_Lente_Superior": "Lente superior del piloto trasero", "Piloto_Trasero_Reflector": "Reflector del piloto trasero", "Refrig_Vaso_Expansion": "Vaso de expansión del refrigerante", "Refrig_Nivel": "Ventana del nivel de refrigerante", "Arnes_Electrico": "Arnés eléctrico (cables)", "Chasis_Tornilleria": "Tornillería y fijaciones", "Suspension_Trasera_Fijacion_Superior": "Fijación superior del amortiguador", "Suspension_Trasera_Arandela": "Arandela de la fijación superior", "Refrig_Soporte": "Soporte del radiador", "Rueda_Delantera_Neumatico": "Neumático delantero", "Rueda_Trasera_Neumatico": "Neumático trasero", "Faro_Delantero": "Faro delantero", "Faro_Delantero_Reflector": "Reflector del faro", "Faro_Delantero_Lente": "Lente del faro", "Faro_Delantero_Reflector_Interno": "Reflector interno del faro", "Piloto_Trasero_Lente": "Lente del piloto trasero", "Piloto_Trasero_Soporte": "Soporte del piloto trasero", "Faro_Delantero_Base": "Base del faro", "Carenado_Panel_Deposito": "Panel del depósito", "Chasis_Cubierta_Subchasis": "Cubierta del subchasis", "Estribo_Izquierdo": "Estribo izquierdo", "Refrig_Cubierta": "Cubierta del radiador", "Carenado_Quilla": "Quilla del motor", "Carenado_Visor": "Visor del faro", "Faro_Delantero_Luz": "Luz LED del faro", "Chasis_Soporte_Deposito": "Soporte lateral del depósito", "Piloto_Trasero": "Piloto trasero", "Carenado_Cola_Blanco": "Cubierta trasera blanca", "Carenado_Cola_Franja": "Franja roja de la cola", "Rueda_Delantera_Separador": "Separador del eje delantero", "Carenado_Lateral_Negro": "Carenado lateral negro", "Carenado_Deposito": "Carenado blanco del depósito", "Deposito_Combustible": "Depósito de combustible", "Carenado_Lateral": "Carenado lateral y tapas", "Direccional_Delantera_Caja": "Caja de la direccional delantera", "Direccional_Delantera_Lente": "Lente de la direccional delantera", "Direccional_Delantera_Reflector": "Reflector de la direccional delantera", "Direccional_Trasera_Caja": "Caja de la direccional trasera", "Direccional_Trasera_Lente": "Lente de la direccional trasera", "Direccional_Trasera_Reflector": "Reflector de la direccional trasera", "Direccional_Trasera": "Direccionales traseras", "Direccional_Delantera": "Direccionales delanteras", "Escape_Silenciador": "Silenciador", "Escape_Punta": "Punta del silenciador", "Manillar_Mandos": "Carcasas de los mandos", "Manillar_Palancas": "Palancas de freno y embrague", "Manillar_Punos": "Puños", "Manillar_Bomba_Freno": "Bomba de freno y soporte de palanca", "Chasis_Direccion_Tija": "Tija y columna de dirección", "Basculante_Eje_Pivote": "Eje del basculante", "Chasis_Direccion_Abrazadera": "Abrazaderas del manillar", "Basculante_Soporte": "Soporte del basculante", "Chasis_Agarradera": "Agarradera trasera", "Basculante_Principal": "Basculante", "Suspension_Trasera_Soporte": "Soporte del amortiguador", "Chasis_Guardabarros_Trasero": "Guardabarros trasero y cola", "Freno_Mangueras": "Mangueras de freno", "Rueda_Trasera_Rin": "Rin trasero", "Freno_Trasero_Caliper_Soporte": "Soporte de la pinza trasera", "Freno_Trasero_Caliper": "Pinza de freno trasera", "Freno_Trasero_Caliper_Fijacion": "Fijación de la pinza trasera", "Basculante_Extremo": "Extremo del basculante", "Rueda_Trasera_Buje": "Buje trasero", "Freno_Trasero_Disco": "Disco de freno trasero", "Rueda_Trasera_Valvula": "Válvula de aire trasera", "Suspension_Trasera_Resorte": "Resorte trasero", "Suspension_Trasera_Amortiguador": "Amortiguador trasero Nitrox", "Faro_Delantero_Carcasa": "Carcasa del faro", "Chasis_Guardabarros_Delantero": "Guardabarros delantero", "Freno_Delantero_Caliper_Fijacion": "Fijación de la pinza delantera", "Rueda_Delantera_Buje": "Buje delantero", "Chasis_Guardabarros_Delantero_Detalle": "Detalle blanco del guardabarros delantero", "Freno_Delantero_Caliper": "Pinza de freno delantera", "Suspension_Delantera_Tijas": "Tijas (soporte de la horquilla)", "Manillar_Espejos_Cristal": "Cristal de los espejos", "Suspension_Delantera_Barras": "Barras de la horquilla", "Suspension_Delantera_Barras_Internas": "Barras internas cromadas de la horquilla", "Faro_Delantero_Foco": "Foco del faro", "Chasis_Tubo_Lateral": "Tubo lateral del chasis", "Rueda_Delantera_Rin": "Rin delantero", "Freno_Delantero_Disco": "Disco de freno delantero", "Rueda_Delantera_Eje": "Eje y tuerca delanteros", "Manillar_Tubo": "Manillar (tubo) y soportes de espejos", "Rueda_Delantera_Valvula": "Válvula de aire delantera", "Freno_Delantero_Caliper_Soporte": "Soporte de la pinza delantera", "Suspension_Delantera_Botellas": "Botellas de la horquilla", "Cadena_Pinon_Trasero": "Piñón trasero (corona)", "Tablero_Aro": "Aro del cuentarrevoluciones", "Tablero_Eje_Aguja": "Eje de la aguja", "Tablero_Lente": "Lente del cuentarrevoluciones", "Tablero_Pantalla": "Tablero (pantalla)", "Tablero_Testigo_Neutro": "Testigo verde de neutro (N)", "Tablero_Esfera": "Esfera del tablero", "Tablero_Testigo_Luz_Alta": "Testigo azul de luz alta", "Tablero_Marco": "Tablero (marco)", "Tablero_Carcasa": "Tablero (carcasa)", "Tablero_Aguja": "Aguja del cuentarrevoluciones", "Tablero_Botones": "Botones MODE y SET del tablero", "Tablero_Testigo_Alerta": "Testigo rojo de alerta", "Manillar_Contrapesos": "Contrapesos del manillar", "Manillar_Interruptor": "Interruptor de paro del motor", "Rueda_Delantera_Franja": "Franja roja del rin delantero", "Rueda_Trasera_Franja": "Franja roja del rin trasero", "Chasis_Placa_Trasera": "Placa trasera", "Motor_Piston": "Pistón", "Motor_Biela": "Biela", "Motor_Ciguenal": "Cigüeñal", "Motor_Cilindro": "Cilindro", "Motor_Bujia": "Bujía", "Embrague_Discos_Friccion": "Discos de fricción del embrague", "Embrague_Discos_Acero": "Discos de acero del embrague", "Cadena_Pinon_Delantero": "Piñón delantero", "Bateria": "Batería 12 V 8 Ah", "Componente_Electrico_ECU": "ECU (computadora del motor)", "Componente_Electrico_Regulador": "Regulador-rectificador", "Componente_Electrico_Bobina": "Bobina de encendido", "Componente_Electrico_Motor_Arranque": "Motor de arranque", "Arnes_Cable_Bateria_Regulador": "Cable batería–regulador", "Arnes_Cable_Bateria_ECU": "Cable batería–ECU", "Arnes_Cable_Arranque": "Cable del motor de arranque", "Arnes_Cable_Bobina": "Cable de la bobina", "Arnes_Cable_Faro": "Cable del faro", "Arnes_Cable_Tablero": "Cable del tablero", "Arnes_Cable_Mando_Izq": "Cable del mando izquierdo", "Arnes_Cable_Mando_Der": "Cable del mando derecho", "Arnes_Cable_Piloto": "Cable del piloto trasero", "Cadena_Transmision": "Cadena de transmisión"};
+const pretty = (n) => PRETTY[n] || n.replace(/_/g, " ");
+
+const SYSTEMS = [
+  { id: "motor", name: "Motor", match: (n) => n.startsWith("Motor_"),
+    role: "Convierte la energía química del combustible en movimiento giratorio.",
+    how: "En cada ciclo el pistón sube y baja cuatro veces: admisión (entra la mezcla), compresión (se aprieta), explosión (la chispa la enciende y empuja el pistón) y escape (salen los gases). La biela convierte el vaivén del pistón en el giro del cigüeñal.",
+    facts: ["Monocilíndrico de 199,4 cc (72 × 49 mm), refrigerado por líquido y con inyección electrónica.", "Un ciclo completo necesita dos vueltas del cigüeñal (720 grados).", "Solo una de las cuatro carreras entrega fuerza: la explosión."],
+    tip: "Enciende el motor y activa «Cámara lenta»: verás el pistón, la biela y el cigüeñal, y el cilindro cambia de color en cada tiempo." },
+  { id: "aire", name: "Aire, combustible y escape",
+    match: (n) => ["Deposito_Combustible", "Caja_Filtro_Aire", "Filtro_Aire", "Carburador", "Tubo_Admision"].includes(n) || n.startsWith("Escape_") || n.startsWith("Deposito_"),
+    role: "Lleva aire y combustible al motor y evacua los gases quemados.",
+    how: "El aire entra por la caja del filtro, el inyector lo mezcla con la gasolina del depósito y el tubo de admisión lleva la mezcla hasta la culata. Después de la explosión, los gases salen por el colector y el silenciador.",
+    facts: ["Recorrido de la mezcla: filtro, inyector, tubo de admisión, culata.", "Recorrido de los gases: colector de escape, silenciador.", "El filtro retiene el polvo; el silenciador reduce el ruido."],
+    tip: "Piezas como la caja del filtro y el depósito son transparentes en el modelo para que veas lo que hay dentro." },
+  { id: "transmision", name: "Transmisión", match: (n) => /^(Transmision_|Embrague_|Cadena_)/.test(n),
+    role: "Lleva la fuerza del motor hasta la rueda trasera y permite elegir entre más fuerza o más velocidad.",
+    how: "El cigüeñal mueve el embrague; la caja de cambios (6 marchas) modifica la relación entre giro del motor y giro de salida; la cadena entrega ese giro al piñón trasero. Marchas cortas dan más fuerza y menos velocidad; las largas, lo contrario.",
+    facts: ["Caja de 6 marchas (1 abajo, 5 arriba).", "El embrague separa o une el motor con la caja.", "El simulador usa relaciones aproximadas: reducción primaria 2,8:1 y final 2,7:1 (piñón trasero contra delantero)."],
+    tip: "Acelera en 1.ª y sube marchas: observa cómo cambian las rpm para la misma velocidad. Aprieta el embrague y verás que el motor deja de mover la rueda." },
+  { id: "frenos", name: "Frenos", match: (n) => n.startsWith("Freno_") || n === "Manillar_Palancas",
+    role: "Reduce la velocidad convirtiendo la energía de movimiento en calor por fricción.",
+    how: "Al accionar la palanca o el pedal, la pinza hidráulica aprieta las pastillas contra el disco y la fricción frena la rueda. Al frenar, el peso se traslada hacia adelante y la horquilla se comprime.",
+    facts: ["Disco y pinza en la rueda delantera y en la trasera.", "El freno delantero hace la mayor parte del trabajo porque el peso pasa adelante al frenar.", "La fricción genera calor: los discos se calientan."],
+    tip: "Avanza y mantén el botón «Freno»: las pinzas y los discos brillan, la horquilla se comprime y el piloto trasero se enciende más." },
+  { id: "suspension", name: "Suspensión", match: (n) => /^(Suspension_|Basculante_)/.test(n),
+    role: "Absorbe las irregularidades del terreno y mantiene las ruedas en contacto con el suelo.",
+    how: "Adelante, la horquilla telescópica desliza las barras dentro de las botellas. Atrás, el basculante pivota sobre su eje y el amortiguador con resorte trabaja. El resorte absorbe el golpe y el amortiguador controla el rebote.",
+    facts: ["Horquilla telescópica adelante.", "Amortiguador con resorte atrás, unido al basculante.", "Resorte: absorbe. Amortiguador: frena el rebote."],
+    tip: "Frena con la moto en marcha y mira cómo se comprime la horquilla delantera." },
+  { id: "electrico", name: "Sistema eléctrico",
+    match: (n) => /^(Bateria|Componente_Electrico_|Arnes_|Faro_|Piloto_|Tablero_|Direccional_)/.test(n) || n === "Motor_Bujia",
+    role: "Produce la chispa de encendido y alimenta las luces.",
+    how: "La batería almacena la energía; la ECU decide en qué momento se enciende la mezcla; la bobina eleva el voltaje a miles de voltios y la bujía produce la chispa. El arnés conecta todo y también alimenta el faro y el piloto.",
+    facts: ["Circuito de encendido: batería, ECU, bobina, bujía.", "El arnés es el conjunto de cables que une todos los componentes.", "La chispa salta al final de la compresión."],
+    tip: "Al encender el motor se iluminan faro y piloto, y la bujía destella en cada explosión (mejor en cámara lenta)." },
+  { id: "refrig", name: "Refrigeración", match: (n) => n.startsWith("Refrig_"),
+    role: "Mantiene el motor a la temperatura correcta.",
+    how: "La bomba de agua hace circular el refrigerante por el motor y el radiador. La tapa del radiador regula la presión y el vaso de expansión recibe el excedente. El ventilador entra a 95 °C y se detiene a 90 °C.",
+    facts: ["Total: 1000 ml de refrigerante Bajaj Koolex.", "Se rellena solo por el vaso de expansión, con el motor frío.", "El testigo rojo se enciende por encima de 110 °C."],
+    tip: "Es normal que el ventilador se encienda y apague solo: indica que el sistema funciona." },
+  { id: "ruedas", name: "Ruedas", match: (n) => n.startsWith("Rueda_"),
+    role: "Transmiten al suelo la tracción, el frenado y el peso de la moto.",
+    how: "El neumático es el único contacto con el suelo. Los radios reparten la carga entre el buje y el rin. La rueda trasera recibe la fuerza de la cadena; ambas soportan los discos de freno.",
+    facts: ["Cada rueda: neumático, rin, radios y buje.", "La rueda trasera arrastra el piñón grande de la transmisión."],
+    tip: "En el simulador ruedas, discos y piñones giran según la velocidad." },
+  { id: "chasis", name: "Chasis y dirección",
+    match: (n) => /^(Chasis_|Manillar|Asiento|Estribo_|Caballete|Carenado_)/.test(n) || n === "Suspension_Delantera_Tijas",
+    role: "Sostiene todos los componentes y permite dirigir la moto.",
+    how: "El chasis tubular une motor, suspensiones y ruedas y define la rigidez de la moto. El manillar y las tijas transmiten el giro de dirección a la rueda delantera. El asiento, los estribos y el caballete completan la estructura.",
+    facts: ["Estructura tubular tipo trelis.", "El subchasis soporta asiento, batería y electrónica.", "El manillar reúne el acelerador y las palancas."],
+    tip: "Usa «Otro lado» para ver la moto desde el lado contrario." }
+];
+const sysById = Object.fromEntries(SYSTEMS.map((s) => [s.id, s]));
+const systemsOf = (name) => SYSTEMS.filter((s) => s.match(name)).map((s) => s.id);
+
+/* ------------------------------------------------------------------ *
+ *  Escena
+ * ------------------------------------------------------------------ */
+const $ = (s) => document.querySelector(s);
+const wrap = $("#canvas-wrap");
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x14161a);
+
+const camera = new THREE.PerspectiveCamera(45, wrap.clientWidth / wrap.clientHeight, 0.05, 100);
+const HOME_TARGET = new THREE.Vector3(0.03, 0.5, 0);
+const HOME_POS = new THREE.Vector3(2.3, 1.3, -2.7);
+camera.position.copy(HOME_POS);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+wrap.appendChild(renderer.domElement);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(HOME_TARGET);
+controls.enableDamping = true;
+controls.minDistance = 0.7;
+controls.maxDistance = 8;
+controls.maxPolarAngle = Math.PI * 0.52;
+controls.update();
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x303030, 0.3));
+const dir = new THREE.DirectionalLight(0xffffff, 1.0); dir.position.set(3, 5, 2); scene.add(dir);
+const dir2 = new THREE.DirectionalLight(0xffffff, 0.5); dir2.position.set(-3, 2, -3); scene.add(dir2);
+const grid = new THREE.GridHelper(6, 30, 0x444444, 0x282828); grid.position.y = -0.005; scene.add(grid);
+{ const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d"), gr = g.createRadialGradient(64,64,4,64,64,64); gr.addColorStop(0,"rgba(0,0,0,.55)"); gr.addColorStop(1,"rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(0,0,128,128); const sh = new THREE.Mesh(new THREE.PlaneGeometry(2.6,1.0), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false })); sh.rotation.x = -Math.PI/2; sh.position.set(0.04,0.001,0); scene.add(sh); }
+
+
+/* ------------------------------------------------------------------ *
+ *  Fondo de taller (todo procedural: texturas dibujadas en canvas, sin archivos)
+ * ------------------------------------------------------------------ */
+const workshop = new THREE.Group();
+workshop.name = "Fondo_Taller";
+scene.add(workshop);
+(function buildWorkshop() {
+  const RX = 7, RZ = 6, RH = 4;                       // medio ancho, medio fondo y alto de la nave
+  const canvasTex = (w, h, draw, rx = 1, ry = 1) => {
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    draw(c.getContext("2d"), w, h);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry);
+    t.anisotropy = 4; return t;
+  };
+  const std = (o) => new THREE.MeshStandardMaterial(Object.assign({ roughness: 0.9, metalness: 0 }, o));
+  const add = (geo, mat, x, y, z, rx, ry, rz) => {
+    const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z);
+    if (rx) m.rotation.x = rx; if (ry) m.rotation.y = ry; if (rz) m.rotation.z = rz;
+    workshop.add(m); return m;
+  };
+  const noise = (g, w, h, n, a) => { for (let i = 0; i < n; i++) { const v = Math.random() * 255 | 0; g.fillStyle = `rgba(${v},${v},${v},${a})`; g.fillRect(Math.random() * w, Math.random() * h, 2, 2); } };
+
+  /* Piso de concreto con juntas y marco amarillo de seguridad alrededor de la moto */
+  const floorTex = canvasTex(512, 512, (g, w, h) => {
+    g.fillStyle = "#5b5e63"; g.fillRect(0, 0, w, h); noise(g, w, h, 5000, 0.12);
+    g.strokeStyle = "rgba(20,20,22,.55)"; g.lineWidth = 3; g.strokeRect(0, 0, w, h);
+    for (let i = 0; i < 6; i++) { g.fillStyle = `rgba(30,30,35,${0.04 + Math.random() * 0.06})`; g.beginPath(); g.ellipse(Math.random() * w, Math.random() * h, 30 + Math.random() * 60, 15 + Math.random() * 30, Math.random() * 3, 0, 7); g.fill(); }
+  }, RX * 2 / 2.5, RZ * 2 / 2.5);
+  add(new THREE.PlaneGeometry(RX * 2, RZ * 2), std({ map: floorTex, roughness: 0.75 }), 0, -0.002, 0, -Math.PI / 2);
+  const mark = canvasTex(512, 256, (g, w, h) => {
+    g.strokeStyle = "#f2c230"; g.lineWidth = 12; g.setLineDash([46, 26]); g.strokeRect(10, 10, w - 20, h - 20);
+  });
+  const mk = add(new THREE.PlaneGeometry(3.4, 1.7), new THREE.MeshBasicMaterial({ map: mark, transparent: true, opacity: 0.85, depthWrite: false }), 0.02, 0.0005, 0, -Math.PI / 2);
+  mk.renderOrder = -1;
+
+  /* Paredes */
+  const wallTex = canvasTex(512, 256, (g, w, h) => {
+    g.fillStyle = "#cfcdc6"; g.fillRect(0, 0, w, h); noise(g, w, h, 2500, 0.08);
+    g.fillStyle = "#31404f"; g.fillRect(0, h * 0.55, w, h * 0.45);           // franja baja azul grisácea
+    g.fillStyle = "#f2c230"; g.fillRect(0, h * 0.53, w, h * 0.025);
+    g.fillStyle = "rgba(0,0,0,.12)"; for (let x = 0; x < w; x += 128) g.fillRect(x, 0, 2, h);
+  }, 3, 1);
+  const wm = std({ map: wallTex, roughness: 0.95 });
+  add(new THREE.PlaneGeometry(RX * 2, RH), wm, 0, RH / 2, RZ, 0, Math.PI);             // pared del fondo (z+)
+  add(new THREE.PlaneGeometry(RX * 2, RH), wm, 0, RH / 2, -RZ);                     // pared de atrás de la cámara (z-)
+  add(new THREE.PlaneGeometry(RZ * 2, RH), wm, RX, RH / 2, 0, 0, -Math.PI / 2);     // derecha
+  add(new THREE.PlaneGeometry(RZ * 2, RH), wm, -RX, RH / 2, 0, 0, Math.PI / 2);     // izquierda
+  add(new THREE.PlaneGeometry(RX * 2, RZ * 2), std({ color: 0x2a2c30 }), 0, RH, 0, Math.PI / 2); // techo
+
+  /* Cortina metálica (pared z-) */
+  const doorTex = canvasTex(256, 256, (g, w, h) => {
+    g.fillStyle = "#8d949b"; g.fillRect(0, 0, w, h);
+    for (let y = 0; y < h; y += 16) { g.fillStyle = "rgba(0,0,0,.25)"; g.fillRect(0, y, w, 3); g.fillStyle = "rgba(255,255,255,.12)"; g.fillRect(0, y + 3, w, 2); }
+  });
+  add(new THREE.PlaneGeometry(3.2, 3), std({ map: doorTex, metalness: 0.4, roughness: 0.6 }), 2.5, 1.5, -RZ + 0.01);
+
+  /* Tablero de herramientas (pared z+) */
+  const pegTex = canvasTex(1024, 384, (g, w, h) => {
+    g.fillStyle = "#b99a6b"; g.fillRect(0, 0, w, h);
+    g.fillStyle = "rgba(60,40,15,.55)"; for (let y = 12; y < h; y += 24) for (let x = 12; x < w; x += 24) { g.beginPath(); g.arc(x, y, 2.4, 0, 7); g.fill(); }
+    g.strokeStyle = "#1d2127"; g.fillStyle = "#1d2127"; g.lineCap = "round";
+    const wrench = (x, y, l) => { g.lineWidth = 9; g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + l); g.stroke(); g.lineWidth = 3; g.beginPath(); g.arc(x, y - 6, 13, 0.5, 5.8); g.stroke(); g.beginPath(); g.arc(x, y + l + 6, 12, 3.7, 8.9); g.stroke(); };
+    for (let i = 0; i < 9; i++) wrench(70 + i * 40, 60, 110 + (i % 3) * 22);
+    g.lineWidth = 3; for (let i = 0; i < 5; i++) { g.fillStyle = i % 2 ? "#c9352b" : "#e5b81c"; g.fillRect(470 + i * 36, 56, 16, 90); g.fillStyle = "#222"; g.fillRect(470 + i * 36, 150, 16, 70); }
+    g.fillStyle = "#c9352b"; g.fillRect(700, 50, 90, 50); g.fillStyle = "#222"; g.fillRect(790, 66, 70, 18);   // martillo
+    g.fillStyle = "#4a5360"; g.beginPath(); g.roundRect(880, 40, 90, 120, 10); g.fill();                       // llave inglesa/placa
+    g.lineWidth = 2; g.strokeStyle = "rgba(0,0,0,.4)"; g.strokeRect(2, 2, w - 4, h - 4);
+  });
+  add(new THREE.PlaneGeometry(4.2, 1.5), std({ map: pegTex }), -1.5, 2.1, RZ - 0.02, 0, Math.PI);
+
+  /* Banco de trabajo con tornillo de banco */
+  const wood = std({ color: 0x8a6a42 }), steel = std({ color: 0x3a4048, metalness: 0.6, roughness: 0.5 });
+  add(new THREE.BoxGeometry(3.2, 0.07, 0.8), wood, -1.5, 0.92, RZ - 0.5);
+  for (const dx of [-1.5, 1.5]) for (const dz of [-0.33, 0.33]) add(new THREE.BoxGeometry(0.07, 0.9, 0.07), steel, -1.5 + dx, 0.45, RZ - 0.5 + dz);
+  add(new THREE.BoxGeometry(3.1, 0.05, 0.7), std({ color: 0x4b4f55 }), -1.5, 0.3, RZ - 0.5);
+  add(new THREE.BoxGeometry(0.16, 0.12, 0.14), std({ color: 0x2f5f9a, metalness: 0.4, roughness: 0.5 }), -2.7, 1.02, RZ - 0.58);
+
+  /* Cajonera de herramientas roja */
+  const chestTex = canvasTex(256, 256, (g, w, h) => {
+    g.fillStyle = "#b3261e"; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 6; i++) { const y = 6 + i * 40; g.fillStyle = "#c5372e"; g.fillRect(8, y, w - 16, 34); g.strokeStyle = "#5c130f"; g.lineWidth = 2; g.strokeRect(8, y, w - 16, 34); g.fillStyle = "#cfd3d8"; g.fillRect(w / 2 - 36, y + 14, 72, 6); }
+  });
+  add(new THREE.BoxGeometry(0.62, 1.15, 0.9), std({ color: 0xb3261e, roughness: 0.55 }), 2.4, 0.575, RZ - 0.55);
+  add(new THREE.PlaneGeometry(0.88, 1.1), std({ map: chestTex, roughness: 0.5 }), 2.4 - 0.31 - 0.001, 0.575, RZ - 0.55, 0, -Math.PI / 2);
+
+  /* Estantería con cajas y bidones (pared derecha) */
+  const rack = new THREE.Group();
+  const rk = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); rack.add(m); };
+  for (let i = 0; i < 4; i++) rk(new THREE.BoxGeometry(0.5, 0.04, 2.4), steel, 0, 0.3 + i * 0.6, 0);
+  for (const z of [-1.2, 1.2]) for (const x of [-0.24, 0.24]) rk(new THREE.BoxGeometry(0.04, 2.2, 0.04), steel, x, 1.1, z);
+  const boxM = [std({ color: 0xa7803f }), std({ color: 0x3b6ea5 }), std({ color: 0xc9a14a })];
+  for (let i = 0; i < 3; i++) for (let k = 0; k < 4; k++) rk(new THREE.BoxGeometry(0.34, 0.26, 0.4 + (k % 2) * 0.1), boxM[(i + k) % 3], 0, 0.45 + i * 0.6, -0.9 + k * 0.6);
+  rack.position.set(RX - 0.3, 0, 2.2); workshop.add(rack);
+  const barrelM = [std({ color: 0x23406e, metalness: 0.3, roughness: 0.55 }), std({ color: 0xa42a22, metalness: 0.3, roughness: 0.55 })];
+  [[RX - 0.6, -2.2, 0], [RX - 0.6, -3.0, 1], [RX - 0.6, -3.8, 0]].forEach(([x, z, k]) => add(new THREE.CylinderGeometry(0.28, 0.28, 0.85, 20), barrelM[k], x, 0.425, z));
+
+  /* Pila de llantas (rincón izquierdo) */
+  const tire = std({ color: 0x151517, roughness: 0.85 }), tg = new THREE.TorusGeometry(0.27, 0.11, 10, 24);
+  for (let i = 0; i < 4; i++) add(tg, tire, -RX + 0.9, 0.11 + i * 0.22, -3.4, Math.PI / 2);
+  for (let i = 0; i < 2; i++) add(tg, tire, -RX + 0.9, 0.11 + i * 0.22, -4.2, Math.PI / 2);
+
+  /* Lámparas colgantes y luces */
+  const shade = std({ color: 0x2d3138, metalness: 0.5, roughness: 0.4, side: THREE.DoubleSide });
+  const bulb = new THREE.MeshBasicMaterial({ color: 0xfff2c8 });
+  [[-1.4, 0], [1.4, 0]].forEach(([x, z]) => {
+    add(new THREE.CylinderGeometry(0.01, 0.01, RH - 3.2, 6), steel, x, (RH + 3.2) / 2, z);
+    add(new THREE.ConeGeometry(0.34, 0.22, 20, 1, true), shade, x, 3.12, z);
+    add(new THREE.SphereGeometry(0.07, 12, 8), bulb, x, 3.07, z);
+    const pl = new THREE.PointLight(0xfff0d0, 9, 0, 2); pl.position.set(x, 2.9, z); workshop.add(pl); (workshop.userData.lamps = workshop.userData.lamps || []).push(pl);
+  });
+  const hemi = new THREE.HemisphereLight(0xfff4e0, 0x2a2c30, 0.25); workshop.add(hemi);
+})();
+
+function base64ToArrayBuffer(b64) {
+  const binary = atob(b64); const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+
+/* ------------------------------------------------------------------ *
+ *  Estado de la exploración
+ * ------------------------------------------------------------------ */
+let currentSelected = null;
+let currentSystem = null;
+const originalColors = new Map();
+const originalEmissive = new Map();
+const namedMeshes = [];
+const M = {};                   // nombre -> malla
+let simReady = false;
+
+/* ------------------------------------------------------------------ *
+ *  Cámara animada
+ * ------------------------------------------------------------------ */
+let tween = null;
+function flyTo(target, position, dur = 0.7) {
+  tween = { t: 0, dur, t0: controls.target.clone(), t1: target.clone(), p0: camera.position.clone(), p1: position.clone() };
+}
+controls.addEventListener("start", () => { tween = null; });
+function stepTween(dt) {
+  if (!tween) return;
+  tween.t = Math.min(1, tween.t + dt / tween.dur);
+  const k = tween.t * tween.t * (3 - 2 * tween.t);
+  controls.target.lerpVectors(tween.t0, tween.t1, k);
+  camera.position.lerpVectors(tween.p0, tween.p1, k);
+  if (tween.t >= 1) tween = null;
+}
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function fly(target, position) {
+  if (reduceMotion) { controls.target.copy(target); camera.position.copy(position); controls.update(); }
+  else flyTo(target, position);
+}
+function homeView(flip) {
+  const p = HOME_POS.clone();
+  const side = flip === undefined ? Math.sign(camera.position.z - controls.target.z) || -1 : flip;
+  p.z = Math.abs(p.z) * (side < 0 ? -1 : 1);
+  fly(HOME_TARGET, p);
+}
+function focusMeshes(meshes) {
+  const box = new THREE.Box3();
+  meshes.forEach((m) => { m.updateWorldMatrix(true, false); box.expandByObject(m); });
+  if (box.isEmpty()) return;
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  const radius = Math.max(size.x, size.y, size.z) * 0.5;
+  const off = camera.position.clone().sub(controls.target).normalize();
+  const dist = Math.min(4.2, Math.max(0.45, radius * 3.4));
+  fly(center, center.clone().add(off.multiplyScalar(dist)));
+}
+
+/* ------------------------------------------------------------------ *
+ *  Aislamiento de sistemas
+ * ------------------------------------------------------------------ */
+function setGhost(mesh, ghost) {
+  const m = mesh.material;
+  const o = m.userData.o;
+  if (ghost) { m.transparent = true; m.opacity = 0.06; m.depthWrite = false; }
+  else { m.transparent = o.transparent; m.opacity = o.opacity; m.depthWrite = o.depthWrite; }
+  m.needsUpdate = true;
+  mesh.userData.ghost = ghost;
+}
+
+function selectSystem(id) {
+  currentSystem = id || null;
+  clearSelection();
+  namedMeshes.forEach((m) => {
+    const inside = !id || m.name.startsWith("Base_") || systemsOf(m.name).includes(id);
+    setGhost(m, !inside);
+  });
+  postSystem(id);
+  document.querySelectorAll(".sys-btn").forEach((b) => b.classList.toggle("active", (b.dataset.id || "") === (id || "")));
+  renderPartList();
+  renderSystemInfo(id);
+  if (id) focusMeshes(namedMeshes.filter((m) => systemsOf(m.name).includes(id) && m.visible));
+  else homeView();
+  $("#left").classList.remove("open");
+  if (window.innerWidth <= 1080) $("#info").classList.add("show");
+}
+
+/* ------------------------------------------------------------------ *
+ *  Listas y panel de información
+ * ------------------------------------------------------------------ */
+function buildSystemList() {
+  const list = $("#system-list");
+  list.innerHTML = "";
+  const mk = (id, label, count) => {
+    const b = document.createElement("button");
+    b.className = "sys-btn" + (!id ? " active" : "");
+    b.dataset.id = id || "";
+    b.innerHTML = `<span>${label}</span><span class="count">${count}</span>`;
+    b.addEventListener("click", () => selectSystem(id));
+    list.appendChild(b);
+  };
+  mk(null, "Toda la moto", namedMeshes.filter((m) => !m.name.startsWith("Base_")).length);
+  SYSTEMS.forEach((s) => mk(s.id, s.name, namedMeshes.filter((m) => s.match(m.name)).length));
+}
+
+function partButton(mesh) {
+  const btn = document.createElement("button");
+  btn.className = "part-btn" + (mesh.visible ? "" : " off") + (mesh === currentSelected ? " active" : "");
+  btn.textContent = pretty(mesh.name);
+  btn.dataset.uuid = mesh.uuid;
+  btn.addEventListener("click", () => selectMesh(mesh, true));
+  return btn;
+}
+
+function renderPartList() {
+  const listEl = $("#part-list");
+  listEl.innerHTML = "";
+  const title = $("#parts-title");
+  if (currentSystem) {
+    const s = sysById[currentSystem];
+    const parts = namedMeshes.filter((m) => s.match(m.name));
+    title.textContent = `Piezas de ${s.name.toLowerCase()} (${parts.length})`;
+    parts.forEach((m) => listEl.appendChild(partButton(m)));
+  } else {
+    title.textContent = "Todas las piezas";
+    const used = new Set();
+    SYSTEMS.forEach((s) => {
+      const parts = namedMeshes.filter((m) => !used.has(m.uuid) && s.match(m.name));
+      if (!parts.length) return;
+      const h = document.createElement("h2"); h.textContent = s.name; listEl.appendChild(h);
+      parts.forEach((m) => { used.add(m.uuid); listEl.appendChild(partButton(m)); });
+    });
+    const rest = namedMeshes.filter((m) => !used.has(m.uuid));
+    if (rest.length) {
+      const h = document.createElement("h2"); h.textContent = "Otras piezas"; listEl.appendChild(h);
+      rest.forEach((m) => listEl.appendChild(partButton(m)));
+    }
+  }
+}
+
+function renderWelcome() {
+  $("#info-body").innerHTML = `
+    <h2 class="title">Explora la moto</h2>
+    <p>Toca una pieza en el modelo o en la lista para ver qué hace. Elige un sistema para aislarlo del resto.</p>
+    <div class="tip">Abajo tienes el simulador: enciende el motor, elige una marcha y acelera para ver cómo trabajan el motor, la transmisión, los frenos y la suspensión.</div>`;
+}
+
+function renderSystemInfo(id) {
+  if (!id) { renderWelcome(); return; }
+  const s = sysById[id];
+  $("#info-body").innerHTML = `
+    <h2 class="title">${s.name}</h2>
+    <p>${s.role}</p>
+    <h3>Cómo funciona</h3><p>${s.how}</p>
+    <h3>Datos clave</h3><ul>${s.facts.map((f) => `<li>${f}</li>`).join("")}</ul>
+    <div class="tip">${s.tip}</div>`;
+}
+
+function renderPartInfo(mesh) {
+  const desc = DESCRIPTIONS[mesh.name] || "Componente de la motocicleta.";
+  const sys = systemsOf(mesh.name);
+  $("#info-body").innerHTML = `
+    <h2 class="title">${pretty(mesh.name)}</h2>
+    <p>${desc}</p>
+    ${sys.length ? `<h3>Pertenece a</h3><div class="tags">${sys.map((i) => `<button class="chip" data-sys="${i}">${sysById[i].name}</button>`).join("")}</div>` : ""}
+    <div class="row-btns"><button class="chip" id="hide-btn">Ocultar pieza</button><button class="chip" id="show-btn">Mostrar todo</button></div>`;
+  $("#info-body").querySelectorAll("[data-sys]").forEach((b) => b.addEventListener("click", () => selectSystem(b.dataset.sys)));
+  $("#hide-btn").addEventListener("click", () => {
+    if (!currentSelected) return;
+    currentSelected.visible = false;
+    const b = document.querySelector(`.part-btn[data-uuid="${currentSelected.uuid}"]`);
+    if (b) b.classList.add("off");
+  });
+  $("#show-btn").addEventListener("click", () => {
+    namedMeshes.forEach((m) => { m.visible = true; }); selectSystem(currentSystem);
+    document.querySelectorAll(".part-btn").forEach((b) => b.classList.remove("off"));
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ *  Selección de piezas
+ * ------------------------------------------------------------------ */
+function clearSelection() {
+  if (currentSelected) {
+    const m = currentSelected.material;
+    m.color.copy(originalColors.get(currentSelected.uuid));
+    m.emissive.copy(originalEmissive.get(currentSelected.uuid));
+    m.emissiveIntensity = 1;
+    currentSelected = null;
+  }
+  document.querySelectorAll(".part-btn.active").forEach((b) => b.classList.remove("active"));
+}
+
+function selectMesh(mesh, fromList) {
+  clearSelection();
+  currentSelected = mesh;
+  mesh.material.color.set(0xffb020);
+  mesh.material.emissive.set(0x663300);
+  mesh.material.emissiveIntensity = 1;
+  const btn = document.querySelector(`.part-btn[data-uuid="${mesh.uuid}"]`);
+  if (btn) { btn.classList.add("active"); if (fromList) btn.scrollIntoView({ block: "nearest" }); }
+  renderPartInfo(mesh);
+  if (fromList) { mesh.visible = true; namedMeshes.forEach((m) => setGhost(m, m !== mesh)); focusMeshes([mesh]); }
+  $("#info").classList.add("show");
+}
+
+/* Clic en el modelo (se ignora si fue un arrastre) */
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let downAt = null;
+renderer.domElement.addEventListener("pointerdown", (e) => { downAt = { x: e.clientX, y: e.clientY }; });
+renderer.domElement.addEventListener("pointerup", (e) => {
+  if (!downAt) return;
+  const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
+  downAt = null;
+  if (moved > 6) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(namedMeshes.filter((m) => m.visible && !m.userData.ghost), false);
+  if (!hits.length) return;
+  let pick = hits[0];
+  if (pick.object.material.userData.o.transparent) {
+    const solid = hits.find((h) => !h.object.material.userData.o.transparent);
+    if (solid && solid.distance - pick.distance < 0.1) pick = solid;
+  }
+  selectMesh(pick.object, false);
+});
+
+/* ------------------------------------------------------------------ *
+ *  Simulación (nivel 3)
+ * ------------------------------------------------------------------ */
+const CFG = {
+  idle: 1500, max: 10500, primary: 2.8, final: 0.237 / 0.087,
+  ratios: [0, 2.83, 1.86, 1.36, 1.1, 0.92, 0.79],
+  rw: 0.31, mass: 233, tmax: 18.7, slipCap: 4500,
+  startTime: 1.25,  // duración del motor de arranque (s)
+  flare: 1300       // subida de rpm al encender (ralentí acelerado en frío)
+};
+const sim = {
+  on: false, starting: false, startT: 0, flare: 0, rpm: 0, rpmFree: 0, v: 0, gear: 0, thrSlider: 0, thr: 0, brk: 0,
+  crank: 0, wheel: 0, fspr: 0, cfric: 0, csteel: 0, dive: 0, slow: false,
+  brakeBtn: false, clutchBtn: false, keys: { w: false, space: false, shift: false },
+  flash: "", flashT: 0
+};
+
+/* Geometría del mecanismo pistón, biela y cigüeñal (medida sobre el modelo) */
+const C0 = new THREE.Vector2(0.07000, 0.32000);           // eje del cigüeñal
+const P0 = new THREE.Vector2(0.08691, 0.33773);         // muñequilla (extremo grande de la biela)
+const Q0 = new THREE.Vector2(0.10257, 0.44155);         // bulón (extremo pequeño de la biela)
+const ALPHA = THREE.MathUtils.degToRad(15);         // inclinación del cilindro
+const U = new THREE.Vector2(Math.sin(ALPHA), Math.cos(ALPHA));   // eje del cilindro
+const W = new THREE.Vector2(Math.cos(ALPHA), -Math.sin(ALPHA));  // perpendicular (sentido horario)
+const pRel = P0.clone().sub(C0);
+const CR = pRel.length();                                        // radio de la manivela
+const TH0 = Math.atan2(pRel.dot(W), pRel.dot(U));                // ángulo inicial de la manivela
+const ROD = Q0.distanceTo(P0);                                   // longitud de la biela
+const S0 = CR * Math.cos(TH0) + Math.sqrt(ROD * ROD - Math.pow(CR * Math.sin(TH0), 2));
+const ROD_ANGLE0 = Math.atan2(Q0.y - P0.y, Q0.x - P0.x);
+
+const FORK_UP = new THREE.Vector2(-0.4405, 0.8977);  // dirección en que se comprime la horquilla
+const FRONT = { x: 0.7234, y: 0.2951 }, REAR = { x: -0.6396, y: 0.3061 }, FSPR = { x: -0.02, y: 0.41 }, CL = { x: 0.01, y: 0.3 };
+const rigs = { front: [], rear: [], fork: [], fspr: null, cfric: null, csteel: null, crank: null };
+
+function pivotMesh(name, px, py) {
+  const m = M[name]; if (!m) return null;
+  m.geometry = m.geometry.clone();
+  m.geometry.translate(-px, -py, 0);
+  m.position.set(px, py, 0);
+  m.userData.base = new THREE.Vector2(px, py);
+  return m;
+}
+
+
+let chainMesh = null, chainUpdate = null;
+function hideChain() { ["Cadena_Placas", "Cadena_Rodillos"].forEach((n) => { if (M[n]) M[n].visible = false; });
+  const showE = currentSystem === "electrico";
+  Object.keys(M).forEach((n) => { if (n.startsWith("Arnes_Cable_") || n === "Bateria" || n.startsWith("Componente_Electrico_")) M[n].visible = showE; }); }
+function postSystem(id) {
+  hideChain();
+  if (id === "motor") ["Motor_Carter", "Motor_Tapa_Transparente", "Motor_Culata_Carcasa"].forEach((n) => { const m = M[n]; if (m) { m.material.transparent = true; m.material.opacity = 0.25; m.material.depthWrite = false; m.material.needsUpdate = true; m.userData.ghost = false; } });
+  if (chainMesh) { const g = !!id && id !== "transmision", cm = chainMesh.material; cm.transparent = g; cm.opacity = g ? 0.06 : 1; cm.depthWrite = !g; cm.needsUpdate = true; }
+}
+function buildChain() {
+  const rs = 0.1, fs = 0.04, zc = -0.084, tau = Math.PI * 2;
+  const A = new THREE.Vector2(FSPR.x, FSPR.y), B = new THREE.Vector2(REAR.x, REAR.y);
+  const d = B.clone().sub(A), D = d.length(), th = Math.atan2(d.y, d.x), be = Math.acos((fs - rs) / D);
+  let nt = th + be, nb = th - be;
+  if (Math.sin(nt) < Math.sin(nb)) { const t = nt; nt = nb; nb = t; }
+  const pt = (c, r, a) => new THREE.Vector2(c.x + r * Math.cos(a), c.y + r * Math.sin(a));
+  const dec = (a0, a1) => (((a0 - a1) % tau) + tau) % tau;
+  const pts = [];
+  const line = (p0, p1) => { for (let i = 0; i < 60; i++) pts.push(p0.clone().lerp(p1, i / 60)); };
+  const arc = (c, r, a0, a1) => { const sp = dec(a0, a1), n = Math.max(8, Math.ceil((sp * r) / 0.004)); for (let i = 0; i < n; i++) pts.push(pt(c, r, a0 - (sp * i) / n)); };
+  line(pt(B, rs, nt), pt(A, fs, nt)); arc(A, fs, nt, nb); line(pt(A, fs, nb), pt(B, rs, nb)); arc(B, rs, nb, nt);
+  const cum = [0];
+  for (let i = 1; i <= pts.length; i++) cum.push(cum[i - 1] + pts[i % pts.length].distanceTo(pts[i - 1]));
+  const L = cum[pts.length], N = Math.round(L / 0.0127), pitch = L / N;
+  const at = (s) => {
+    s = ((s % L) + L) % L; let lo = 0, hi = cum.length - 1;
+    while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (cum[mid] <= s) lo = mid; else hi = mid; }
+    const p0 = pts[lo % pts.length], p1 = pts[(lo + 1) % pts.length], u = (s - cum[lo]) / Math.max(1e-6, cum[lo + 1] - cum[lo]);
+    return { p: p0.clone().lerp(p1, u), a: Math.atan2(p1.y - p0.y, p1.x - p0.x) };
+  };
+  chainMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(0.0105, 0.011, 0.012), new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.85, roughness: 0.4 }), N);
+  chainMesh.material.userData.o = { transparent: false, opacity: 1, depthWrite: true };
+  const c1 = new THREE.Color(0x9aa0a8), c2 = new THREE.Color(0x2b2d31);
+  for (let i = 0; i < N; i++) chainMesh.setColorAt(i, i % 2 ? c2 : c1);
+  const dm = new THREE.Object3D(); let lastW = 0, chainPos = 0;
+  chainUpdate = (wheel) => {
+    const dw = wheel - lastW; lastW = wheel; const vmax = 0.3 * pitch; chainPos += vmax * Math.tanh((dw * rs) / vmax); const off = chainPos;
+    for (let i = 0; i < N; i++) { const q = at(i * pitch + off); dm.position.set(q.p.x, q.p.y, zc); dm.rotation.set(0, 0, q.a); dm.updateMatrix(); chainMesh.setMatrixAt(i, dm.matrix); }
+    chainMesh.instanceMatrix.needsUpdate = true;
+  };
+  chainMesh.name = "Cadena_Transmision"; originalColors.set(chainMesh.uuid, chainMesh.material.color.clone()); originalEmissive.set(chainMesh.uuid, chainMesh.material.emissive.clone()); M[chainMesh.name] = chainMesh; namedMeshes.push(chainMesh);
+  chainMesh.frustumCulled = false; scene.add(chainMesh); chainUpdate(0); hideChain();
+}
+
+function setupRigs() {
+  ["Rueda_Delantera_Neumatico", "Rueda_Delantera_Rin", "Rueda_Delantera_Franja", "Rueda_Delantera_Buje", "Rueda_Delantera_Eje", "Rueda_Delantera_Valvula", "Freno_Delantero_Disco"].forEach((n) => { const m = pivotMesh(n, FRONT.x, FRONT.y); if (m) { rigs.front.push(m); rigs.fork.push(m); } });
+  ["Rueda_Trasera_Neumatico", "Rueda_Trasera_Rin", "Rueda_Trasera_Franja", "Rueda_Trasera_Buje", "Rueda_Trasera_Valvula", "Freno_Trasero_Disco", "Cadena_Pinon_Trasero"].forEach((n) => { const m = pivotMesh(n, REAR.x, REAR.y); if (m) rigs.rear.push(m); });
+  rigs.fspr = pivotMesh("Cadena_Pinon_Delantero", FSPR.x, FSPR.y);
+  rigs.cfric = pivotMesh("Embrague_Discos_Friccion", CL.x, CL.y);
+  rigs.csteel = pivotMesh("Embrague_Discos_Acero", CL.x, CL.y);
+  rigs.crank = pivotMesh("Motor_Ciguenal", C0.x, C0.y);
+  buildChain();
+  ["Suspension_Delantera_Barras", "Suspension_Delantera_Botellas", "Freno_Delantero_Caliper", "Freno_Delantero_Caliper_Fijacion", "Freno_Delantero_Caliper_Soporte", "Rueda_Delantera_Separador"].forEach((n) => { if (M[n]) rigs.fork.push(M[n]); });
+}
+
+const setGlow = (mesh, hex, k) => {
+  if (!mesh || mesh === currentSelected) return;
+  const m = mesh.material;
+  if (k <= 0.001) { m.emissive.copy(originalEmissive.get(mesh.uuid)); m.emissiveIntensity = 1; }
+  else { m.emissive.setHex(hex); m.emissiveIntensity = k; }
+};
+
+function stepSim(dt) {
+  const c = CFG, s = sim;
+  wsSim(s, dt);
+  if (s.starting) {
+    s.startT -= dt;
+    if (s.startT <= 0) {
+      s.starting = false; s.on = true; s.flare = 1;
+      refreshEngineBtn();
+      flash("Motor encendido: la ECU y la bobina mandan chispa a la bujía en cada ciclo.");
+    }
+  }
+  const thrIn = Math.max(s.thrSlider, s.keys.w ? 1 : 0);
+  s.thr += (thrIn - s.thr) * Math.min(1, dt * 10);
+  const brkIn = s.brakeBtn || s.keys.space ? 1 : 0;
+  s.brk += (brkIn - s.brk) * Math.min(1, dt * 12);
+  const clutchPulled = s.clutchBtn || s.keys.shift;
+  const g = s.gear;
+  const engaged = g > 0 && !clutchPulled && !ws.fx.noDrive;
+  const ratioTot = g > 0 ? c.primary * c.ratios[g] * c.final : 0;
+  const wheelRpm = s.v / (2 * Math.PI * c.rw) * 60;
+  const locked = engaged ? wheelRpm * ratioTot : 0;
+
+  // Revoluciones del motor libre (sin estar unido a la rueda)
+  s.flare = s.on ? Math.max(0, s.flare - dt / 1.8) : 0;
+  const target = s.on ? Math.min(c.max, c.idle + s.thr * (c.max - c.idle) + s.flare * c.flare) : (s.starting ? 240 : 0);
+  const rate = target > s.rpmFree ? 7000 : 5000;
+  s.rpmFree += Math.max(-rate * dt, Math.min(rate * dt, target - s.rpmFree));
+
+  let slip = false, over = false;
+  if (engaged) {
+    if (!s.on || locked >= c.slipCap) { s.rpm = Math.min(locked, c.max * 1.05); s.rpmFree = s.rpm; }
+    else { s.rpm = Math.max(locked, Math.min(s.rpmFree, c.slipCap)); slip = s.rpm > locked + 50; }
+  } else {
+    s.rpm = s.rpmFree;
+  }
+
+  // Fuerza en la rueda
+  let F = 0;
+  if (engaged) {
+    const curve = Math.max(0.35, 1 - 0.6 * Math.pow((s.rpm - 8000) / 6000, 2));
+    const eb = 2.5 + 4 * s.rpm / c.max;
+    let T;
+    if (!s.on) T = -eb;
+    else { T = s.thr * c.tmax * curve * ws.fx.power - (1 - s.thr) * eb; if (s.rpm > c.max - 150 && T > 0) T = 0; }
+    F = T * ratioTot * 0.88 / c.rw;
+    if (slip) F = Math.max(0, Math.min(F, 900));
+    if (locked > c.max * 1.03) { F -= (locked - c.max * 1.03) * 1.2; over = true; }
+  }
+  const v = s.v;
+  const net = F - 0.2 * v * v - (v > 0.01 ? 35 : 0) - s.brk * 1800 * ws.fx.brakeF;
+  s.v = ws.fx.noRoll ? 0 : Math.max(0, v + (net / c.mass) * dt);
+
+  // Hundimiento de la horquilla al frenar
+  const diveTarget = s.v > 0.3 ? s.brk * 0.035 : 0;
+  s.dive += (diveTarget - s.dive) * Math.min(1, dt * 9);
+
+  // Ángulos visuales (las velocidades se escalan para que se vean bien)
+  const slowK = s.slow ? 0.12 : 1, TAU = Math.PI * 2;
+  const visEng = s.rpm > 20 ? 0.25 + 3.0 * s.rpm / c.max : 0;
+  const wrev = wheelRpm / 60;
+  s.crank += visEng * TAU * dt * slowK;
+  s.wheel += 6 * Math.tanh(wrev / 6) * TAU * dt * slowK;
+  s.fspr += 6 * Math.tanh(wrev * c.final / 6) * TAU * dt * slowK;
+  s.cfric += visEng * 0.6 * TAU * dt * slowK;
+  const steel = !clutchPulled ? visEng * 0.6 : (g > 0 ? 6 * Math.tanh(wrev * c.final * c.ratios[g] / 6) : 0);
+  s.csteel += steel * TAU * dt * slowK;
+
+  s.info = { engaged, slip, over, clutchPulled, wheelRpm, locked };
+}
+
+function applySim() {
+  if (!simReady) return;
+  const s = sim, TAU = Math.PI * 2;
+
+  // Ruedas, discos, piñones y embrague
+  rigs.front.forEach((m) => { m.rotation.z = -s.wheel; });
+  rigs.rear.forEach((m) => { m.rotation.z = -s.wheel; });
+  if (chainUpdate) chainUpdate(s.wheel);
+  if (rigs.fspr) rigs.fspr.rotation.z = -s.fspr;
+  if (rigs.cfric) rigs.cfric.rotation.z = -s.cfric;
+  if (rigs.csteel) rigs.csteel.rotation.z = -s.csteel;
+  if (rigs.crank) rigs.crank.rotation.z = -s.crank;
+
+  // Mecanismo biela-manivela
+  const th = TH0 + s.crank;
+  const sPist = CR * Math.cos(th) + Math.sqrt(ROD * ROD - Math.pow(CR * Math.sin(th), 2));
+  const px = C0.x + CR * (Math.cos(th) * U.x + Math.sin(th) * W.x);
+  const py = C0.y + CR * (Math.cos(th) * U.y + Math.sin(th) * W.y);
+  const qx = C0.x + sPist * U.x, qy = C0.y + sPist * U.y;
+  if (M.Motor_Piston) M.Motor_Piston.position.set(U.x * (sPist - S0), U.y * (sPist - S0), 0);
+  if (M.Motor_Biela) {
+    const d = Math.atan2(qy - py, qx - px) - ROD_ANGLE0;
+    const cd = Math.cos(d), sd = Math.sin(d);
+    M.Motor_Biela.rotation.z = d;
+    M.Motor_Biela.position.set(px - (P0.x * cd - P0.y * sd), py - (P0.x * sd + P0.y * cd), 0);
+  }
+
+  // Horquilla comprimida
+  rigs.fork.forEach((m) => {
+    const b = m.userData.base || new THREE.Vector2(0, 0);
+    m.position.set(b.x + FORK_UP.x * s.dive, b.y + FORK_UP.y * s.dive, 0);
+  });
+
+  // Ciclo de cuatro tiempos, chispa y luces
+  const phi = (((th + TAU) % (2 * TAU)) + 2 * TAU) % (2 * TAU);   // 0..4π
+  const stroke = Math.floor(phi / Math.PI);                       // 0 admisión, 1 compresión, 2 explosión, 3 escape
+  s.stroke = s.rpm > 20 ? stroke : -1;
+  const running = s.on && s.rpm > 50;
+  if (M.Motor_Cilindro) {
+    if (!running) setGlow(M.Motor_Cilindro, 0, 0);
+    else if (stroke === 0) setGlow(M.Motor_Cilindro, 0x1b6fd1, 0.7);
+    else if (stroke === 1) setGlow(M.Motor_Cilindro, 0xd1a81b, 0.8);
+    else if (stroke === 2) setGlow(M.Motor_Cilindro, 0xff5a1a, 1.6 - 1.0 * ((phi - 2 * Math.PI) / Math.PI));
+    else setGlow(M.Motor_Cilindro, 0x777777, 0.5);
+  }
+  const spark = running && phi >= TAU && phi < TAU + 0.5;
+  setGlow(M.Motor_Bujia, 0xfff3a0, spark ? 2.5 : 0);
+  setGlow(M.Faro_Delantero_Lente, 0xfff2b0, s.on && !ws.fx.noFaro ? 1.3 : 0);
+  setGlow(M.Piloto_Trasero, 0xff1a1a, ws.fx.noPiloto ? 0 : (s.on ? 0.5 : 0) + s.brk * 1.6);
+  const hot = s.v > 0.3 ? s.brk : 0;
+  setGlow(M.Freno_Delantero_Caliper, 0xff3300, hot * 1.1);
+  setGlow(M.Freno_Trasero_Caliper, 0xff3300, hot * 1.1);
+  setGlow(M.Freno_Delantero_Disco, 0xff5500, hot * 0.9);
+  setGlow(M.Freno_Trasero_Disco, 0xff5500, hot * 0.9);
+}
+
+/* ------------------------------------------------------------------ *
+ *  Sonido de la moto (Web Audio, todo sintetizado: no usa archivos)
+ *  - Motor monocilíndrico de 4 tiempos: 1 explosión cada 2 vueltas (rpm/120 por segundo)
+ *  - Capas: pulsos de escape, armónicos del motor, admisión, engranajes, rodadura y frenos
+ *  - Extras: motor de arranque, ronroneo al ralentí, limitador, petardeos al soltar el gas,
+ *    golpe de la palanca de cambios y rascado si se cambia sin embrague
+ * ------------------------------------------------------------------ */
+const audio = (() => {
+  let ctx = null, master = null, timer = null;
+  let vol = 0.7, muted = false;
+  const N = {}, B = {};
+  let phase = 0, lastT = 0, wasOn = false, igniteT = -10;
+  const LAT = 0.03;
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+
+  function makeBuffers() {
+    const sr = ctx.sampleRate, TAU = Math.PI * 2;
+    const mk = (sec) => { const b = ctx.createBuffer(1, Math.floor(sr * sec), sr); return [b, b.getChannelData(0)]; };
+    const norm = (d, peak) => {
+      let m = 0; for (let i = 0; i < d.length; i++) m = Math.max(m, Math.abs(d[i]));
+      if (m > 0) for (let i = 0; i < d.length; i++) d[i] *= peak / m;
+    };
+
+    // Ruido blanco para bucles (admisión, rodadura, frenos)
+    { const [b, d] = mk(2); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; B.noise = b; }
+
+    // Explosión en el escape: golpe grave con caída de tono + soplido corto
+    { const [b, d] = mk(0.12); let ph = 0, lp = 0;
+      for (let i = 0; i < d.length; i++) {
+        const t = i / sr;
+        ph += TAU * (58 + 95 * Math.exp(-t / 0.014)) / sr;
+        let x = Math.sin(ph) * Math.exp(-t / 0.030);
+        x += 0.35 * Math.sin(TAU * 172 * t + 0.8) * Math.exp(-t / 0.018);
+        lp += ((Math.random() * 2 - 1) - lp) * 0.22;
+        x += 0.75 * lp * Math.exp(-t / 0.007);
+        x *= Math.min(1, t / 0.0015);
+        d[i] = Math.tanh(x * 1.7);
+      }
+      norm(d, 0.95); B.thump = b; }
+
+    // Petardeo (explosión en el escape al soltar el gas o al limitar)
+    { const [b, d] = mk(0.09); let lp = 0;
+      for (let i = 0; i < d.length; i++) {
+        const t = i / sr, n = Math.random() * 2 - 1;
+        lp += (n - lp) * 0.5;
+        let x = (n - lp) * Math.exp(-t / 0.010) + 0.6 * Math.sin(TAU * 130 * t) * Math.exp(-t / 0.02);
+        x *= Math.min(1, t / 0.0006);
+        d[i] = Math.tanh(x * 1.4);
+      }
+      norm(d, 0.9); B.pop = b; }
+
+    // Golpe mecánico (palanca de cambios, solenoide del arranque)
+    { const [b, d] = mk(0.14); let lp = 0;
+      for (let i = 0; i < d.length; i++) {
+        const t = i / sr;
+        lp += ((Math.random() * 2 - 1) - lp) * 0.35;
+        let x = Math.sin(TAU * 95 * t) * Math.exp(-t / 0.035) * 0.9;
+        x += lp * Math.exp(-t / 0.004) * 0.9;
+        x += Math.sin(TAU * 1900 * t) * Math.exp(-t / 0.003) * 0.25;
+        d[i] = x;
+      }
+      norm(d, 0.9); B.clunk = b; }
+  }
+
+  function makeChuff() {
+    const sr = ctx.sampleRate, d0 = ctx.createBuffer(1, Math.floor(sr * 0.16), sr), d = d0.getChannelData(0);
+    let lp = 0, m = 0;
+    for (let i = 0; i < d.length; i++) {
+      const t = i / sr;
+      lp += ((Math.random() * 2 - 1) - lp) * 0.10;
+      d[i] = Math.tanh(lp * 5 * Math.min(1, t / 0.008) * Math.exp(-t / 0.05));
+      m = Math.max(m, Math.abs(d[i]));
+    }
+    for (let i = 0; i < d.length; i++) d[i] *= 0.85 / (m || 1);
+    B.chuff = d0;
+  }
+
+  function loopNoise() { const s = ctx.createBufferSource(); s.buffer = B.noise; s.loop = true; s.start(); return s; }
+  function osc(type) { const o = ctx.createOscillator(); o.type = type; o.start(); return o; }
+  function filt(type, f, q) { const n = ctx.createBiquadFilter(); n.type = type; n.frequency.value = f; n.Q.value = q || 0.7; return n; }
+  function gain(v) { const g = ctx.createGain(); g.gain.value = v; return g; }
+  function chain(...nodes) { for (let i = 0; i < nodes.length - 1; i++) nodes[i].connect(nodes[i + 1]); }
+  function curve(k) {
+    const c = new Float32Array(1024);
+    for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; c[i] = Math.tanh(x * k); }
+    return c;
+  }
+  function applyVolume() {
+    if (!master) return;
+    master.gain.setTargetAtTime(muted ? 0 : 0.9 * Math.pow(vol, 1.6), ctx.currentTime, 0.03);
+  }
+
+  function build() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    ctx = new AC({ latencyHint: "interactive" });
+    makeBuffers(); makeChuff();
+    // Clip de encendido personalizado (reemplaza el sonido sintetizado del arranque)
+    try {
+      ctx.decodeAudioData(base64ToArrayBuffer(STARTER_MP3_B64)).then((buf) => { B.starterClip = buf; }).catch((e) => console.warn("No se pudo decodificar el audio de encendido", e));
+    } catch (e) { console.warn("No se pudo decodificar el audio de encendido", e); }
+
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -16; comp.knee.value = 14; comp.ratio.value = 4;
+    comp.attack.value = 0.004; comp.release.value = 0.2;
+    master = gain(0);
+    chain(master, comp, ctx.destination);
+
+    // Pulsos de escape → cuerpo grave → filtro de brillo → saturación suave
+    N.pulseIn = gain(0.9);
+    N.pulseBody = filt("peaking", 115, 1); N.pulseBody.gain.value = 5;
+    N.pulseLP = filt("lowpass", 2500, 0.8);
+    N.shaper = ctx.createWaveShaper(); N.shaper.curve = curve(1.4);
+    chain(N.pulseIn, N.pulseBody, N.pulseLP, N.shaper, master);
+
+    // Armónicos del motor (dan la sensación de subida de tono con las rpm)
+    N.oA = osc("sawtooth"); N.oALP = filt("lowpass", 700, 0.7); N.oAG = gain(0);
+    chain(N.oA, N.oALP, N.oAG, master);
+    N.oB = osc("triangle"); N.oBLP = filt("lowpass", 2200, 0.7); N.oBG = gain(0);
+    chain(N.oB, N.oBLP, N.oBG, master);
+
+    // Admisión (aire entrando al carburador)
+    N.inSrc = loopNoise(); N.inBP = filt("bandpass", 400, 0.9); N.inG = gain(0);
+    chain(N.inSrc, N.inBP, N.inG, master);
+
+    // Silbido de engranajes de la transmisión
+    N.wh = osc("sine"); N.whG = gain(0);
+    chain(N.wh, N.whG, master);
+
+    // Rodadura y viento
+    N.rdSrc = loopNoise(); N.rdLP = filt("lowpass", 300, 0.6); N.rdG = gain(0);
+    chain(N.rdSrc, N.rdLP, N.rdG, master);
+
+    // Frenos
+    N.bkSrc = loopNoise(); N.bkBP = filt("bandpass", 3000, 4); N.bkG = gain(0);
+    chain(N.bkSrc, N.bkBP, N.bkG, master);
+
+    lastT = ctx.currentTime;
+    applyVolume();
+    timer = setInterval(tick, 20);
+  }
+
+  function unlock() {
+    if (!ctx) { try { build(); } catch (e) { console.warn("Audio no disponible", e); ctx = null; return; } }
+    if (ctx && ctx.state === "suspended") ctx.resume();
+  }
+
+  function play(buf, t, g, rate, dest) {
+    const src = ctx.createBufferSource(); src.buffer = buf; src.playbackRate.value = rate;
+    const gn = gain(g); src.connect(gn); gn.connect(dest || master); src.start(t);
+  }
+  const pulse = (t, g, rate) => play(B.thump, t, g, rate, N.pulseIn);
+  const pop = (t, g) => play(B.pop, t, g, 0.8 + Math.random() * 0.5, master);
+  const set = (param, v, now, k) => param.setTargetAtTime(v, now, k || 0.04);
+
+  /* Bucle de audio: sigue el estado del simulador y programa cada explosión */
+  function tick() {
+    if (!ctx || ctx.state !== "running") return;
+    const now = ctx.currentTime;
+    const dtA = Math.min(0.05, Math.max(0, now - lastT)); lastT = now;
+    const s = sim, i = s.info || {};
+    const on = s.on, thr = s.thr, rpm = s.rpm, v = s.v;
+    const rpmN = clamp(rpm / CFG.max, 0, 1.1);
+
+    // Transiciones de encendido y apagado
+    if (on && !wasOn) {
+      igniteT = now;
+      // Con el clip de encendido personalizado el motor ya se oye "entrando"
+      // en la cola del audio, así que estos golpes se suavizan para que se
+      // fundan con él en vez de sonar como un corte añadido encima.
+      const catchG = B.starterClip ? 0.55 : 1;
+      pulse(now + 0.01, catchG, 0.9); pulse(now + 0.13, catchG * 0.9, 1.0); pop(now + 0.02, catchG * 0.6);
+      phase = 0;
+    }
+    if (!on && wasOn) {
+      [[0.04, 0.55, 0.85], [0.17, 0.38, 0.78], [0.36, 0.22, 0.7]].forEach(([dt, g, r]) => pulse(now + dt, g, r));
+      play(B.clunk, now + 0.5, 0.15, 0.8);
+    }
+    wasOn = on;
+
+    // Explosiones: una cada dos vueltas del cigüeñal
+    if (on && rpm > 200) {
+      const rate = rpm / 120;
+      phase += rate * dtA;
+      let n = Math.floor(phase); phase -= n; n = Math.min(n, 10);
+      const age = now - igniteT;
+      const limiter = rpm > CFG.max - 250 && thr > 0.5;
+      for (let j = 0; j < n; j++) {
+        const tOff = (phase + (n - 1 - j)) / rate;
+        let t = now - tOff + LAT;
+        t += (Math.random() - 0.5) * 0.14 / rate * (1 - rpmN);   // ronroneo irregular a bajas rpm
+        t = Math.max(t, now + 0.003);
+        let skip = false;
+        if (age < 0.9 && Math.random() < 0.5 * (1 - age / 0.9)) { skip = true; if (Math.random() < 0.35) pop(t, 0.3 + Math.random() * 0.25); }   // el motor "prende" con tosidos
+        if (limiter && Math.random() < 0.5) skip = true;                          // corte del limitador
+        if (!skip) {
+          const g = (0.30 + 0.70 * thr) * (0.85 + Math.random() * 0.3);
+          pulse(t, g, 0.85 + 0.55 * rpmN);
+        } else if (limiter && Math.random() < 0.3) pop(t, 0.35);
+        if (thr < 0.08 && rpm > 3800 && Math.random() < 0.10 * rpmN) pop(t + 0.008, 0.28 + Math.random() * 0.2);   // petardeo al soltar el gas
+      }
+    } else {
+      phase = 0;
+    }
+
+    // Capas continuas
+    set(N.pulseLP.frequency, 800 + 1200 * rpmN + 5500 * thr * rpmN, now);
+    set(N.oA.frequency, Math.max(15, rpm / 60 * 2), now, 0.02);
+    set(N.oB.frequency, Math.max(15, rpm / 60 * 4), now, 0.02);
+    set(N.oALP.frequency, 500 + 3000 * rpmN * (0.4 + 0.6 * thr), now);
+    set(N.oAG.gain, on ? 0.015 + 0.075 * rpmN * (0.35 + 0.65 * thr) : 0, now);
+    set(N.oBG.gain, on ? 0.05 * rpmN * rpmN * (0.2 + 0.8 * thr) : 0, now);
+
+    set(N.inBP.frequency, 250 + 2600 * rpmN, now);
+    set(N.inG.gain, on ? 0.015 + 0.26 * thr * rpmN : (rpm > 300 ? 0.02 * rpmN : 0), now);
+
+    const geared = !!i.engaged && rpm > 400;
+    set(N.wh.frequency, clamp(rpm / 60 * 14, 200, 2600), now, 0.03);
+    set(N.whG.gain, geared ? 0.004 + 0.010 * rpmN : 0, now);
+
+    set(N.rdLP.frequency, 180 + v * 45, now);
+    set(N.rdG.gain, clamp(v * 0.007, 0, 0.28), now);
+
+    set(N.bkG.gain, s.brk * clamp((v - 1) / 10, 0, 1) * 0.05, now);
+    set(N.bkBP.frequency, 2500 + 1500 * clamp(v / 15, 0, 1), now);
+  }
+
+  /* Motor de arranque: zumbido eléctrico que se frena en cada compresión, con resoplidos del
+     cilindro, y solapado con el momento en que el motor "prende" */
+  function starter(dur) {
+    if (!ctx) return;
+    if (B.starterClip) {
+      // Sonido de encendido personalizado: entra con un fundido suave y,
+      // sobre todo, se apaga poco a poco hacia el final para que se mezcle
+      // con el motor ya encendido en vez de cortarse en seco.
+      const t0 = ctx.currentTime + 0.02;
+      const clipDur = B.starterClip.duration;
+      const src = ctx.createBufferSource();
+      src.buffer = B.starterClip;
+      const g = gain(0);
+      src.connect(g); g.connect(master);
+      const fadeIn = 0.025;
+      const fadeOut = Math.min(0.6, clipDur * 0.45);
+      const tEnd = t0 + clipDur;
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(1, t0 + fadeIn);
+      g.gain.setValueAtTime(1, Math.max(t0 + fadeIn, tEnd - fadeOut));
+      g.gain.linearRampToValueAtTime(0, tEnd);
+      src.start(t0);
+      return;
+    }
+    const t0 = ctx.currentTime + 0.02, end = dur + 0.3;
+    play(B.clunk, t0, 0.75, 1.1);                 // solenoide
+    play(B.clunk, t0 + 0.04, 0.4, 1.8);           // el piñón engrana con la corona
+
+    const o1 = ctx.createOscillator(), o2 = ctx.createOscillator();
+    o1.type = "sawtooth"; o2.type = "sawtooth"; o2.detune.value = 14;
+    const bp = filt("bandpass", 1100, 1.4), g = gain(0);
+    o1.connect(bp); o2.connect(bp); chain(bp, g, master);
+
+    const hiss = ctx.createBufferSource(); hiss.buffer = B.noise; hiss.loop = true;   // escobillas del motor
+    const hbp = filt("bandpass", 3200, 1), hg = gain(0);
+    chain(hiss, hbp, hg, master);
+
+    const chugs = [0.10, 0.52, 0.90];              // una compresión cada ~0.4 s (motor de arranque de un monocilíndrico)
+    const HI = 0.13, LO = 0.055;
+    [o1.frequency, o2.frequency].forEach((f, n) => {
+      const k = n ? 1.005 : 1;
+      f.setValueAtTime(300 * k, t0);
+      f.linearRampToValueAtTime(390 * k, t0 + 0.07);
+      chugs.forEach((c, i) => {
+        const base = (390 + i * 25) * k;
+        f.linearRampToValueAtTime(base, t0 + c - 0.02);
+        f.linearRampToValueAtTime(base - 90, t0 + c + 0.06);
+        f.linearRampToValueAtTime(base + 15, t0 + c + 0.22);
+      });
+      f.linearRampToValueAtTime(470 * k, t0 + dur);
+    });
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(HI, t0 + 0.05);
+    hg.gain.setValueAtTime(0, t0);
+    hg.gain.linearRampToValueAtTime(0.03, t0 + 0.05);
+    chugs.forEach((c, i) => {
+      g.gain.linearRampToValueAtTime(HI, t0 + c - 0.02);
+      g.gain.linearRampToValueAtTime(LO, t0 + c + 0.06);
+      g.gain.linearRampToValueAtTime(HI, t0 + c + 0.22);
+      play(B.thump, t0 + c, 0.9, 0.48 + 0.04 * i, N.pulseIn);   // golpe de la compresión
+      play(B.chuff, t0 + c + 0.02, 0.5, 0.85, master);           // aire empujado por el escape
+    });
+    g.gain.linearRampToValueAtTime(HI, t0 + dur + 0.05);
+    g.gain.linearRampToValueAtTime(0, t0 + end);
+    hg.gain.linearRampToValueAtTime(0.03, t0 + dur + 0.05);
+    hg.gain.linearRampToValueAtTime(0, t0 + end);
+    [o1, o2, hiss].forEach((n) => { n.start(t0); n.stop(t0 + end + 0.05); });
+  }
+
+  /* Cambio de marcha: golpe de palanca; si no se aprieta el embrague, rascado de engranajes */
+  function shift(rough) {
+    if (!ctx) return;
+    const t = ctx.currentTime + 0.005;
+    play(B.clunk, t, 0.5, 0.92 + Math.random() * 0.16);
+    if (rough) {
+      const src = ctx.createBufferSource(); src.buffer = B.noise; src.loop = true;
+      const bp = filt("bandpass", 1700, 1.2), o = ctx.createOscillator(); o.type = "sawtooth"; o.frequency.value = 88;
+      const hp = filt("highpass", 500, 0.7), g = gain(0);
+      src.connect(bp); bp.connect(g); o.connect(hp); hp.connect(g); g.connect(master);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.16, t + 0.02);
+      g.gain.linearRampToValueAtTime(0.10, t + 0.12);
+      g.gain.linearRampToValueAtTime(0, t + 0.26);
+      src.start(t, Math.random()); o.start(t); src.stop(t + 0.3); o.stop(t + 0.3);
+    }
+  }
+
+  function setVolume(x) { vol = clamp(x, 0, 1); applyVolume(); }
+  function setMuted(m) { muted = m; applyVolume(); }
+  const isMuted = () => muted;
+
+  document.addEventListener("visibilitychange", () => {
+    if (!ctx) return;
+    if (document.hidden) ctx.suspend(); else ctx.resume();
+  });
+  ["pointerdown", "keydown", "touchend"].forEach((ev) => window.addEventListener(ev, unlock, { passive: true }));
+
+  return { unlock, starter, shift, setVolume, setMuted, isMuted };
+})();
+
+/* ------------------------------------------------------------------ *
+ *  Panel del simulador
+ * ------------------------------------------------------------------ */
+const el = {
+  gear: $("#g-gear"), rpm: $("#g-rpm"), fill: $("#rpm-fill"), speed: $("#g-speed"),
+  cycle: [...document.querySelectorAll("#g-cycle span")], status: $("#status"),
+  engine: $("#btn-engine"), thr: $("#thr"), thrOut: $("#thr-out"), gears: [...document.querySelectorAll("#gears .btn")],
+  clutch: $("#btn-clutch"), brake: $("#btn-brake"), slow: $("#slow")
+};
+
+function flash(msg) { sim.flash = msg; sim.flashT = 3.2; }
+
+function setGear(g) {
+  g = Math.max(0, Math.min(6, g));
+  if (g === sim.gear) return;
+  if (ws.fx.noShift) { flash("Sin la palanca de cambios no puedes cambiar de marcha."); return; }
+  const pulled = sim.clutchBtn || sim.keys.shift;
+  if (!pulled && sim.v > 1 && sim.gear > 0 && g > 0) flash("Cambiar de marcha sin apretar el embrague castiga la caja de cambios. Aprieta el embrague antes de cambiar.");
+  audio.shift(!pulled && sim.v > 1 && sim.gear > 0 && g > 0);
+  sim.gear = g;
+  el.gears.forEach((b) => b.classList.toggle("sel", +b.dataset.g === g));
+}
+function refreshEngineBtn() {
+  el.engine.classList.toggle("on", sim.on || sim.starting);
+  el.engine.setAttribute("aria-pressed", String(sim.on || sim.starting));
+  el.engine.disabled = sim.starting;
+  el.engine.textContent = sim.starting ? "Arrancando…" : sim.on ? "Apagar motor" : "Encender motor";
+}
+function toggleEngine() {
+  if (sim.starting) return;
+  audio.unlock();
+  if (!sim.on) {
+    if (ws.fx.noStart) { flash(ws.fx.why); return; }
+    sim.starting = true; sim.startT = CFG.startTime;
+    audio.starter(CFG.startTime);
+    flash("Arrancando: el motor eléctrico de arranque hace girar el cigüeñal hasta lograr compresión y chispa.");
+  } else {
+    sim.on = false;
+    flash("Motor apagado.");
+  }
+  refreshEngineBtn();
+}
+
+el.engine.addEventListener("click", toggleEngine);
+el.gears.forEach((b) => b.addEventListener("click", () => { setGear(+b.dataset.g); b.blur(); }));
+el.thr.addEventListener("input", () => { sim.thrSlider = el.thr.value / 100; el.thrOut.textContent = el.thr.value + "%"; });
+el.thr.addEventListener("change", () => el.thr.blur());
+el.slow.addEventListener("change", () => { sim.slow = el.slow.checked; el.slow.blur(); });
+function holdButton(btn, key) {
+  const down = (e) => { e.preventDefault(); sim[key] = true; btn.classList.add("down"); };
+  const up = () => { sim[key] = false; btn.classList.remove("down"); };
+  btn.addEventListener("pointerdown", down);
+  ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => btn.addEventListener(ev, up));
+}
+const muteBtn = $("#btn-mute"), volIn = $("#vol"), volOut = $("#vol-out");
+function refreshMute() {
+  const m = audio.isMuted();
+  muteBtn.textContent = m ? "Activar sonido" : "Silenciar";
+  muteBtn.setAttribute("aria-pressed", String(m));
+}
+volIn.addEventListener("input", () => { audio.unlock(); audio.setVolume(volIn.value / 100); volOut.textContent = volIn.value + "%"; });
+volIn.addEventListener("change", () => volIn.blur());
+muteBtn.addEventListener("click", () => { audio.unlock(); audio.setMuted(!audio.isMuted()); refreshMute(); muteBtn.blur(); });
+holdButton(el.clutch, "clutchBtn");
+holdButton(el.brake, "brakeBtn");
+
+window.addEventListener("keydown", (e) => {
+  if (e.target && e.target.tagName === "INPUT") return;
+  const k = e.key.toLowerCase();
+  if (e.repeat && k !== "w") { if ([" ", "arrowup", "arrowdown"].includes(k)) e.preventDefault(); return; }
+  if (k === "e") toggleEngine();
+  else if (k === "m") { audio.unlock(); audio.setMuted(!audio.isMuted()); refreshMute(); }
+  else if (k === "w") sim.keys.w = true;
+  else if (k === " ") { sim.keys.space = true; el.brake.classList.add("down"); e.preventDefault(); }
+  else if (k === "shift") { sim.keys.shift = true; el.clutch.classList.add("down"); }
+  else if (k === "arrowup") { setGear(sim.gear + 1); e.preventDefault(); }
+  else if (k === "arrowdown") { setGear(sim.gear - 1); e.preventDefault(); }
+});
+window.addEventListener("keyup", (e) => {
+  const k = e.key.toLowerCase();
+  if (k === "w") sim.keys.w = false;
+  else if (k === " ") { sim.keys.space = false; el.brake.classList.remove("down"); e.preventDefault(); }
+  else if (k === "shift") { sim.keys.shift = false; el.clutch.classList.remove("down"); }
+});
+window.addEventListener("blur", () => { sim.keys.w = sim.keys.space = sim.keys.shift = false; });
+
+function statusText() {
+  const s = sim, i = s.info || {};
+  if (s.flashT > 0) return s.flash;
+  if (s.on && s.temp > 105) return "Temperatura del motor: " + Math.round(s.temp) + " °C. Sin refrigeración se sobrecalienta: apágalo.";
+  if (s.starting) return "Arrancando: el motor de arranque hace girar el cigüeñal.";
+  if (!s.on && s.rpm < 50 && s.v < 0.3) return "Motor apagado. Pulsa «Encender motor» para empezar.";
+  if (!s.on && i.engaged && s.v > 0.5) return "Motor apagado pero con marcha puesta: la rueda hace girar el motor y lo frena (freno motor).";
+  if (s.brk > 0.3 && s.v > 1) return "Frenando: la pinza aprieta las pastillas contra el disco, la horquilla se comprime y el piloto trasero se enciende más.";
+  if (i.over) return "Sobrerrevolucionado: el motor gira más de lo que debe y frena la moto. Sube de marcha.";
+  if (s.on && s.gear === 0) return "Punto muerto: el motor gira libre y la moto no avanza. Elige la marcha 1 para arrancar.";
+  if (s.on && s.gear > 0 && i.clutchPulled) return "Embrague apretado: los discos se separan y el motor ya no mueve la rueda.";
+  if (s.on && i.slip) return "Arrancando: el embrague patina hasta que motor y rueda giran a la par.";
+  if (s.on && s.rpm > CFG.max * 0.88 && s.gear < 6 && s.thr > 0.5) return "Revoluciones altas: es momento de subir de marcha.";
+  if (s.on && s.gear === 6 && s.rpm < 3000 && s.thr > 0.6 && s.v > 1) return "Marcha muy larga para esta velocidad: el motor va forzado. Baja de marcha.";
+  if (s.on && s.gear > 0 && s.v < 0.5 && s.thr < 0.05) return "Marcha puesta. Acelera despacio y suelta el freno para arrancar.";
+  return "Marcha corta: más fuerza y menos velocidad. Marcha larga: más velocidad y menos fuerza.";
+}
+
+let hudT = 0, lastStatus = "";
+function updateHud(dt) {
+  const s = sim;
+  s.flashT = Math.max(0, s.flashT - dt);
+  hudT += dt;
+  if (hudT < 0.05) return;
+  hudT = 0;
+  el.gear.textContent = s.gear === 0 ? "N" : String(s.gear);
+  el.rpm.textContent = String(Math.round(s.rpm / 10) * 10);
+  el.speed.textContent = String(Math.round(s.v * 3.6));
+  const pct = Math.min(100, s.rpm / CFG.max * 100);
+  el.fill.style.width = pct + "%";
+  el.fill.classList.toggle("hot", pct > 85);
+  el.cycle.forEach((n, i) => n.classList.toggle("on", i === s.stroke));
+  const t = statusText();
+  if (t !== lastStatus) { el.status.textContent = t; lastStatus = t; }
+}
+
+/* ------------------------------------------------------------------ *
+ *  Otros controles de interfaz
+ * ------------------------------------------------------------------ */
+let cut = false;
+$("#btn-cut").addEventListener("click", () => { cut = !cut; ["Motor_Carter","Motor_Tapa_Transparente","Motor_Culata_Carcasa"].forEach((n) => { if (M[n]) setGhost(M[n], cut); }); $("#btn-cut").textContent = cut ? "Cerrar motor" : "Ver interior del motor"; });
+$("#btn-flip").addEventListener("click", () => {
+  const target = controls.target.clone();
+  const pos = camera.position.clone();
+  pos.z = target.z - (pos.z - target.z);
+  fly(target, pos);
+});
+$("#btn-home").addEventListener("click", () => { if (currentSystem) selectSystem(null); else homeView(); });
+$("#btn-systems").addEventListener("click", () => $("#left").classList.toggle("open"));
+$("#info-close").addEventListener("click", () => $("#info").classList.remove("show"));
+$("#dock-toggle").addEventListener("click", () => {
+  const d = $("#dock"); d.classList.toggle("min");
+  const min = d.classList.contains("min");
+  $("#dock-toggle").textContent = min ? "Abrir" : "Minimizar";
+  $("#dock-toggle").setAttribute("aria-expanded", String(!min));
+});
+if (window.innerWidth <= 1080) $("#dock-toggle").click();
+renderWelcome();
+$("#bg-taller").addEventListener("change", (e) => {
+  const on = e.target.checked; workshop.visible = on; grid.visible = !on;
+  controls.maxDistance = on ? 5.8 : 8; e.target.blur();
+});
+workshop.visible = true; grid.visible = false; controls.maxDistance = 5.8;
+
+window.addEventListener("resize", () => {
+  camera.aspect = wrap.clientWidth / wrap.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+});
+
+
+/* ------------------------------------------------------------------ *
+ *  MODO TALLER: desarmar piezas y ver qué pasa sin ellas
+ *  Todo lo editable está en tablas: GRP (plantillas), PARTS (pieza -> grupo + mensaje propio),
+ *  DEPS (cadena de piezas) y RULES (efectos en la simulación).
+ * ------------------------------------------------------------------ */
+const SEV = { leve: ["Leve", "#5fd3a6"], moderado: ["Moderado", "#ffb020"], grave: ["Grave", "#ff7a2f"], critico: ["Crítico", "#ff3c3c"] };
+const GRP = {
+  motor: { sev: "critico", fn: "El motor pierde una pieza del ciclo de cuatro tiempos y deja de producir fuerza.", seg: "Intentar usarlo así no es posible; arrancarlo sin una pieza interna lo destruye.", mec: "Cualquier pieza interna faltante provoca daños en cadena dentro del bloque.", rel: ["Motor_Piston", "Motor_Biela", "Motor_Ciguenal", "Motor_Cilindro"], fact: "El motor es monocilíndrico de 199,4 cc: una sola explosión cada dos vueltas del cigüeñal." },
+  culata: { sev: "critico", fn: "Se pierde la cámara de combustión cerrada o la lubricación del motor.", seg: "El aceite o los gases salen por la abertura: riesgo de incendio y de caída.", mec: "Entra suciedad y el motor se desgasta o se funde en poco tiempo.", rel: ["Motor_Cilindro", "Motor_Bujia"], fact: "Sin compresión no hay explosión: la culata cierra el cilindro por arriba." },
+  bujia: { sev: "grave", fn: "No hay chispa al final de la compresión.", seg: "Sin riesgo directo, pero la moto queda inmovilizada.", mec: "La mezcla entra sin quemarse y puede mojar el cilindro.", rel: ["Componente_Electrico_Bobina", "Componente_Electrico_ECU"], fact: "Circuito de encendido: batería, ECU, bobina y bujía." },
+  embrague: { sev: "grave", fn: "El motor se desconecta de la caja de cambios.", seg: "La moto no avanza aunque aceleres; queda sin tracción.", mec: "Los demás discos trabajan sin pares y se desgastan.", rel: ["Embrague_Discos_Friccion", "Embrague_Discos_Acero", "Transmision_Palanca_Cambios"], fact: "El embrague une o separa el motor y la caja; la caja es de 6 marchas." },
+  palanca: { sev: "moderado", fn: "No se puede cambiar de marcha.", seg: "Quedas atrapado en la marcha que tenías: peligroso en tráfico.", mec: "Obligar la caja con la mano la daña.", rel: ["Embrague_Discos_Friccion"], fact: "Caja de 6 marchas: 1 abajo y 5 arriba." },
+  cadena: { sev: "grave", fn: "El giro del motor no llega a la rueda trasera.", seg: "La moto no avanza; si falla rodando, pierdes empuje de golpe.", mec: "Piñón, cadena y corona se desgastan juntos: se cambian como kit.", rel: ["Cadena_Pinon_Delantero", "Cadena_Transmision", "Cadena_Pinon_Trasero"], fact: "Relación final aproximada de 2,7:1 (corona contra piñón)." },
+  escape: { sev: "moderado", fn: "El motor arranca pero pierde fuerza y sube mucho el ruido.", seg: "Gases y piezas a más de 100 °C al alcance de la pierna: riesgo de quemaduras.", mec: "Cambia la contrapresión: la mezcla se desajusta y el motor trabaja peor.", rel: ["Escape_Colector", "Escape_Silenciador"], fact: "Los gases salen por el colector y el silenciador, que baja el ruido." },
+  deposito: { sev: "critico", fn: "Sin gasolina el motor no arranca ni funciona.", seg: "Sin depósito no hay donde guardar el combustible: riesgo de derrame e incendio.", mec: "La bomba y el inyector trabajan en seco y se dañan.", rel: ["Motor_Cilindro"], fact: "Capacidad de 12 litros. Conviene mantener siempre al menos 3 litros." },
+  refrig: { sev: "grave", fn: "El motor no se enfría y la temperatura sube sin control.", seg: "Con vapor y presión hay riesgo de quemaduras al abrir; el motor se detiene.", mec: "Sobrecalentamiento: deforma la culata y agarrota el pistón.", rel: ["Refrig_Radiador", "Refrig_Tapa_Radiador", "Refrig_Vaso_Expansion"], fact: "El ventilador entra a 95 °C y se detiene a 90 °C; el testigo rojo se enciende sobre 110 °C. Refrigerante total: 1000 ml (Bajaj Koolex), rellenado solo por el vaso de expansión con el motor frío." },
+  disco: { sev: "grave", fn: "Se pierde parte de la capacidad de frenado.", seg: "Distancias de frenada mucho más largas; sin freno delantero se pierde casi dos tercios del frenado.", mec: "Las pastillas o el disco restantes trabajan al límite y se sobrecalientan.", rel: ["Freno_Delantero_Disco", "Freno_Delantero_Caliper", "Manillar_Bomba_Freno"], fact: "El freno delantero hace la mayor parte del trabajo porque el peso pasa adelante al frenar." },
+  hidraulico: { sev: "critico", fn: "No llega presión de frenado a las pinzas.", seg: "La palanca queda sin efecto: puedes quedarte sin frenos.", mec: "Entra aire al circuito y hay que purgar el líquido.", rel: ["Manillar_Bomba_Freno", "Freno_Mangueras", "Freno_Delantero_Caliper"], fact: "El freno es hidráulico: la palanca empuja líquido que aprieta las pastillas." },
+  suspension: { sev: "grave", fn: "La rueda queda sin soporte o sin control del rebote.", seg: "La moto pierde estabilidad y agarre; con cargas fuertes puede perder el control.", mec: "Los golpes pasan directo al chasis y los rodamientos.", rel: ["Suspension_Delantera_Barras", "Suspension_Trasera_Amortiguador", "Basculante_Principal"], fact: "Resorte: absorbe el golpe. Amortiguador: frena el rebote." },
+  rueda: { sev: "critico", fn: "Sin esta pieza la rueda no puede girar ni apoyarse en el suelo.", seg: "La moto no puede moverse con seguridad.", mec: "Se carga el eje, los rodamientos y el disco del lado afectado.", rel: ["Rueda_Delantera_Neumatico", "Rueda_Delantera_Rin", "Freno_Delantero_Disco"], fact: "Cada rueda: neumático, rin, radios y buje." },
+  direccion: { sev: "critico", fn: "No se puede dirigir la moto.", seg: "Sin dirección no se debe rodar: caída casi segura.", mec: "Las tijas y el manillar sostienen la horquilla y los mandos.", rel: ["Suspension_Delantera_Tijas", "Manillar_Tubo", "Suspension_Delantera_Barras"], fact: "El manillar reúne el acelerador y las palancas." },
+  arranque: { sev: "grave", fn: "Falla el circuito de encendido: la moto no arranca.", seg: "Sin riesgo directo, pero queda inmovilizada.", mec: "Los demás componentes siguen sanos, pero sin energía.", rel: ["Bateria", "Componente_Electrico_ECU", "Componente_Electrico_Bobina", "Componente_Electrico_Motor_Arranque"], fact: "Circuito de encendido: batería, ECU, bobina, bujía." },
+  regulador: { sev: "moderado", fn: "La batería no se recarga: el motor funciona hasta que se agota.", seg: "Se apagan luces y motor sin aviso, incluso en marcha.", mec: "La batería se descarga profunda y se arruina.", rel: ["Bateria"], fact: "El regulador mantiene la carga de la batería mientras el motor gira." },
+  luces: { sev: "moderado", fn: "Se apaga esa luz.", seg: "No ves o no te ven: de noche es muy peligroso.", mec: "No afecta al motor.", rel: ["Arnes_Electrico"], fact: "El arnés alimenta el faro y el piloto." },
+  chasis: { sev: "critico", fn: "Sin chasis no hay estructura que una motor, ruedas y dirección.", seg: "La moto no es utilizable.", mec: "Todo el conjunto queda sin soporte.", rel: ["Motor_Carter", "Basculante_Principal", "Suspension_Delantera_Tijas"], fact: "Estructura tubular tipo trelis." }
+};
+const PARTS = {
+  Motor_Piston: ["motor", "Sin pistón no hay compresión ni explosión: el cilindro queda vacío."],
+  Motor_Biela: ["motor", "Sin biela la fuerza de la explosión no llega al cigüeñal."],
+  Motor_Ciguenal: ["motor", "Sin cigüeñal no hay giro de salida: nada mueve el embrague ni la caja."],
+  Motor_Cilindro: ["motor", "Sin cilindro el pistón no tiene dónde comprimir la mezcla."],
+  Motor_Culata_Carcasa: ["culata", "Sin culata se pierde la cámara de combustión y las válvulas."],
+  Motor_Tapa_Culata: ["culata", "Sin tapa de culata queda al aire el mecanismo de válvulas."],
+  Motor_Carter: ["culata", "Sin carter el cigüeñal queda sin cierre ni aceite."],
+  Motor_Tapa_Transparente: ["culata", "Sin esta tapa la caja del motor queda abierta y entra suciedad."],
+  Motor_Bujia: ["bujia", "Sin bujía no salta la chispa: la mezcla nunca se enciende."],
+  Embrague_Discos_Friccion: ["embrague", "Sin discos de fricción el embrague no transmite fuerza."],
+  Embrague_Discos_Acero: ["embrague", "Sin discos de acero no hay contra qué apretar la fricción."],
+  Transmision_Palanca_Cambios: ["palanca", "Sin palanca no puedes cambiar de marcha."],
+  Cadena_Pinon_Delantero: ["cadena", "Sin piñón delantero la cadena no recibe giro del motor."],
+  Cadena_Transmision: ["cadena", "Sin cadena el motor gira libre y la rueda no recibe fuerza."],
+  Cadena_Pinon_Trasero: ["cadena", "Sin corona la cadena no puede mover la rueda trasera."],
+  Escape_Colector: ["escape", "Sin colector los gases salen calientes junto a la culata."],
+  Escape_Silenciador: ["escape", "Sin silenciador el ruido es extremo y se pierde fuerza."],
+  Deposito_Combustible: ["deposito", "Sin depósito no hay gasolina para el motor."],
+  Refrig_Radiador: ["refrig", "Sin radiador el refrigerante no se enfría."],
+  Refrig_Tapa_Radiador: ["refrig", "Sin tapa no hay presión en el circuito y el refrigerante se pierde."],
+  Refrig_Vaso_Expansion: ["refrig", "Sin vaso de expansión no hay reserva ni se controla el nivel."],
+  Freno_Delantero_Disco: ["disco", "Sin disco delantero la pinza no tiene qué apretar."],
+  Freno_Trasero_Disco: ["disco", "Sin disco trasero se pierde el freno de apoyo."],
+  Freno_Delantero_Caliper: ["disco", "Sin pinza delantera no hay quien apriete las pastillas."],
+  Freno_Trasero_Caliper: ["disco", "Sin pinza trasera no frena la rueda de atrás."],
+  Manillar_Bomba_Freno: ["hidraulico", "Sin bomba no se genera presión: la palanca no frena."],
+  Freno_Mangueras: ["hidraulico", "Sin mangueras el líquido no llega a las pinzas."],
+  Manillar_Palancas: ["hidraulico", "Sin palancas no puedes frenar adelante ni desembragar."],
+  Suspension_Delantera_Barras: ["suspension", "Sin horquilla la rueda delantera queda sin soporte."],
+  Suspension_Trasera_Amortiguador: ["suspension", "Sin amortiguador la rueda trasera rebota sin control."],
+  Suspension_Trasera_Resorte: ["suspension", "Sin resorte el amortiguador no absorbe impactos."],
+  Basculante_Principal: ["suspension", "Sin basculante la rueda trasera se separa del chasis."],
+  Rueda_Delantera_Neumatico: ["rueda", "Sin neumático delantero no hay contacto ni agarre."],
+  Rueda_Trasera_Neumatico: ["rueda", "Sin neumático trasero no hay tracción."],
+  Rueda_Delantera_Rin: ["rueda", "Sin rin delantero no hay donde montar el neumático."],
+  Rueda_Trasera_Rin: ["rueda", "Sin rin trasero no hay donde montar el neumático."],
+  Rueda_Delantera_Buje: ["rueda", "Sin buje delantero los radios no se unen al eje."],
+  Rueda_Trasera_Buje: ["rueda", "Sin buje trasero los radios no se unen al eje."],
+  Rueda_Delantera_Eje: ["rueda", "Sin eje delantero la rueda se suelta de la horquilla."],
+  Suspension_Delantera_Tijas: ["direccion", "Sin tijas la horquilla se separa del chasis."],
+  Manillar_Tubo: ["direccion", "Sin manillar no puedes dirigir, acelerar ni frenar."],
+  Bateria: ["arranque", "Sin batería no hay corriente para ECU, inyección ni arranque."],
+  Componente_Electrico_ECU: ["arranque", "Sin ECU nadie controla inyección ni chispa."],
+  Componente_Electrico_Bobina: ["arranque", "Sin bobina la chispa no alcanza voltaje."],
+  Componente_Electrico_Motor_Arranque: ["arranque", "Sin motor de arranque nadie hace girar el cigüeñal."],
+  Arnes_Electrico: ["arranque", "Sin arnés los componentes no se comunican."],
+  Componente_Electrico_Regulador: ["regulador", "Sin regulador la batería se agota (la simulación apaga el motor a los 25 s)."],
+  Faro_Delantero_Lente: ["luces", "Sin faro se apaga la luz delantera."],
+  Piloto_Trasero_Lente_Superior: ["luces", "Sin piloto se apaga la luz trasera y la de freno."],
+  Chasis_Principal: ["chasis", "Sin chasis principal todo el conjunto se desarma."]
+};
+const DEPS = {   // al quitar la clave se quitan también estas piezas
+  Cadena_Pinon_Delantero: ["Cadena_Transmision"], Cadena_Pinon_Trasero: ["Cadena_Transmision"],
+  Rueda_Delantera_Rin: ["Rueda_Delantera_Neumatico", "Rueda_Delantera_Buje", "Freno_Delantero_Disco"],
+  Rueda_Trasera_Rin: ["Rueda_Trasera_Neumatico", "Rueda_Trasera_Buje", "Freno_Trasero_Disco", "Cadena_Pinon_Trasero", "Cadena_Transmision"],
+  Rueda_Delantera_Eje: ["Rueda_Delantera_Rin", "Rueda_Delantera_Neumatico", "Rueda_Delantera_Buje", "Freno_Delantero_Disco"],
+  Freno_Delantero_Disco: ["Freno_Delantero_Caliper"], Freno_Trasero_Disco: ["Freno_Trasero_Caliper"],
+  Suspension_Delantera_Barras: ["Rueda_Delantera_Eje", "Rueda_Delantera_Rin", "Rueda_Delantera_Neumatico", "Rueda_Delantera_Buje", "Freno_Delantero_Disco", "Freno_Delantero_Caliper"],
+  Basculante_Principal: ["Rueda_Trasera_Rin", "Rueda_Trasera_Neumatico", "Rueda_Trasera_Buje", "Freno_Trasero_Disco", "Freno_Trasero_Caliper", "Cadena_Pinon_Trasero", "Cadena_Transmision", "Suspension_Trasera_Amortiguador", "Suspension_Trasera_Resorte"],
+  Motor_Cilindro: ["Motor_Piston", "Motor_Biela"], Motor_Culata_Carcasa: ["Motor_Bujia", "Motor_Tapa_Culata"],
+  Refrig_Radiador: ["Refrig_Tapa_Radiador"], Chasis_Principal: []
+};
+/* Efectos en la simulación: p = piezas que lo provocan; fx = efecto; m = mensaje */
+const RULES = [
+  { p: ["Motor_Piston", "Motor_Biela", "Motor_Ciguenal", "Motor_Cilindro", "Motor_Culata_Carcasa", "Motor_Tapa_Culata", "Motor_Carter", "Motor_Tapa_Transparente"], fx: { noStart: 1 }, m: "El motor no tiene todas sus piezas internas: no hay compresión y no arranca." },
+  { p: ["Motor_Bujia"], fx: { noStart: 1 }, m: "Sin bujía no hay chispa: el motor no arranca." },
+  { p: ["Bateria", "Componente_Electrico_ECU", "Componente_Electrico_Bobina", "Componente_Electrico_Motor_Arranque", "Arnes_Electrico"], fx: { noStart: 1 }, m: "Falta una pieza del circuito eléctrico de encendido: no arranca." },
+  { p: ["Deposito_Combustible"], fx: { noStart: 1 }, m: "Sin depósito no hay combustible: no arranca." },
+  { p: ["Embrague_Discos_Friccion", "Embrague_Discos_Acero", "Cadena_Pinon_Delantero", "Cadena_Pinon_Trasero", "Cadena_Transmision", "Basculante_Principal"], fx: { noDrive: 1 }, m: "El motor gira, pero la fuerza no llega a la rueda." },
+  { p: ["Rueda_Delantera_Neumatico", "Rueda_Delantera_Rin", "Rueda_Delantera_Buje", "Rueda_Delantera_Eje", "Rueda_Trasera_Neumatico", "Rueda_Trasera_Rin", "Rueda_Trasera_Buje", "Suspension_Delantera_Barras", "Suspension_Delantera_Tijas", "Manillar_Tubo", "Chasis_Principal"], fx: { noRoll: 1 }, m: "Falta una rueda o la estructura: la moto no puede avanzar." },
+  { p: ["Freno_Delantero_Disco", "Freno_Delantero_Caliper", "Manillar_Bomba_Freno", "Manillar_Palancas"], fx: { bl: 0.65 }, m: "Sin freno delantero se pierde la mayor parte del frenado." },
+  { p: ["Freno_Trasero_Disco", "Freno_Trasero_Caliper"], fx: { bl: 0.35 }, m: "Sin freno trasero frenas menos." },
+  { p: ["Freno_Mangueras"], fx: { bl: 1 }, m: "Sin mangueras no llega presión a ninguna pinza: no frena." },
+  { p: ["Refrig_Radiador", "Refrig_Tapa_Radiador", "Refrig_Vaso_Expansion"], fx: { overheat: 1 }, m: "Sin refrigeración el motor se sobrecalienta." },
+  { p: ["Escape_Colector", "Escape_Silenciador"], fx: { power: 0.7 }, m: "Sin escape completo el motor pierde fuerza." },
+  { p: ["Transmision_Palanca_Cambios"], fx: { noShift: 1 }, m: "Sin palanca no puedes cambiar de marcha." },
+  { p: ["Componente_Electrico_Regulador"], fx: { drain: 1 }, m: "Sin regulador la batería se agota y el motor se apaga." },
+  { p: ["Faro_Delantero_Lente"], fx: { noFaro: 1 }, m: "Sin faro se apaga la luz delantera." },
+  { p: ["Piloto_Trasero_Lente_Superior"], fx: { noPiloto: 1 }, m: "Sin piloto se apaga la luz trasera." }
+];
+const L2 = /^(Manillar_Espejos|Tablero_|Direccional_|Asiento|Estribo_|Chasis_Cubierta)/;
+const levelOf = (n) => (PARTS[n] ? 1 : L2.test(n) ? 2 : 3);
+
+function computeFx(miss) {
+  const fx = { noStart: 0, noDrive: 0, noRoll: 0, brakeF: 1, overheat: 0, noFaro: 0, noPiloto: 0, noShift: 0, power: 1, drain: 0, why: "" };
+  let bl = 0;
+  RULES.forEach((r) => {
+    if (!r.p.some((n) => miss.has(n))) return;
+    for (const k in r.fx) { if (k === "bl") bl += r.fx[k]; else if (k === "power") fx.power = Math.min(fx.power, r.fx[k]); else fx[k] = 1; }
+    if (r.fx.noStart && !fx.why) fx.why = r.m;
+  });
+  fx.brakeF = Math.max(0, 1 - bl);
+  return fx;
+}
+
+const ws = { on: false, out: new Map(), hist: [], fx: computeFx(new Set()), items: {}, tip: "" };
+const wsBox = $("#ws-box");
+const tmpV = new THREE.Vector3(), dragPlane = new THREE.Plane(), hitV = new THREE.Vector3();
+let drag = null;
+
+function wsInit() {
+  Object.keys(PARTS).forEach((n) => {
+    const m = M[n]; if (!m) return;
+    const parent = m.parent || scene, h = new THREE.Group();
+    parent.add(h); h.add(m);
+    parent.updateWorldMatrix(true, true);
+    let c, sz;
+    if (m.isInstancedMesh) { c = new THREE.Vector3(-0.3, 0.3, -0.084); sz = new THREE.Vector3(0.7, 0.1, 0.02); }
+    else { const b = new THREE.Box3().setFromObject(m); c = b.getCenter(new THREE.Vector3()); sz = b.getSize(new THREE.Vector3()); }
+    ws.items[n] = { mesh: m, holder: h, center: c, size: sz, anim: null };
+  });
+}
+function trayPos(it, idx) {
+  const col = idx % 5, row = Math.floor(idx / 5);
+  const target = new THREE.Vector3(-1.1 + col * 0.55, it.size.y / 2 + 0.02, -1.2 - row * 0.5);
+  return target.sub(it.center);
+}
+function moveTo(it, to) { it.anim = { t: 0, from: it.holder.position.clone(), to: to.clone() }; }
+function wsAnim(dt) {
+  Object.values(ws.items).forEach((it) => {
+    const a = it.anim; if (!a) return;
+    a.t = Math.min(1, a.t + dt / 0.45);
+    const k = a.t * a.t * (3 - 2 * a.t);
+    it.holder.position.lerpVectors(a.from, a.to, k); it.holder.position.y += Math.sin(k * Math.PI) * 0.28;
+    if (a.t >= 1) it.anim = null;
+  });
+}
+function wsSim(s, dt) {
+  const f = ws.fx;
+  if ((s.on || s.starting) && f.noStart) { s.on = false; s.starting = false; refreshEngineBtn(); flash(f.why); }
+  if (s.temp === undefined) s.temp = 85;
+  if (s.on && f.overheat) s.temp += dt * (0.8 + 2.5 * s.rpm / CFG.max);
+  else s.temp += (85 - s.temp) * Math.min(1, dt * 0.05);
+  if (s.on && s.temp > 120) { s.on = false; refreshEngineBtn(); flash("El motor se apagó por sobrecalentamiento (más de 120 °C): sin refrigeración se agarrota."); }
+  if (s.on && f.drain) { s.drainT = (s.drainT || 0) + dt; if (s.drainT > 25) { s.on = false; s.drainT = 0; refreshEngineBtn(); flash("La batería se agotó porque falta el regulador: el motor se apagó."); } } else s.drainT = 0;
+  if (f.noRoll) s.v = 0;
+}
+
+/* ---------- Quitar y poner ---------- */
+function expand(name) { const set = [name]; (DEPS[name] || []).forEach((d) => { if (ws.items[d] && !set.includes(d)) set.push(d); }); return set; }
+function wsRemove(name, silent) {
+  const names = expand(name).filter((n) => ws.items[n] && !ws.out.has(n));
+  if (!names.length) return;
+  names.forEach((n) => { ws.out.set(n, ws.out.size); moveTo(ws.items[n], trayPos(ws.items[n], ws.out.size - 1)); });
+  ws.hist.push({ type: "rem", names });
+  if (names.length > 1 && !silent) ws.tip = "También se retiraron: " + names.slice(1).map(pretty).join(", ") + ".";
+  else ws.tip = "";
+  wsRefresh(name);
+}
+function wsInstall(names, record = true) {
+  names = [].concat(names).filter((n) => ws.out.has(n));
+  if (!names.length) return;
+  names.forEach((n) => { ws.out.delete(n); moveTo(ws.items[n], new THREE.Vector3()); });
+  if (record) ws.hist.push({ type: "add", names });
+  ws.tip = "";
+  wsRefresh();
+}
+function wsRetray(n) { // reordena la bandeja
+  let i = 0; ws.out.forEach((_, k) => { ws.out.set(k, i); moveTo(ws.items[k], trayPos(ws.items[k], i)); i++; });
+}
+function wsUndo() {
+  const a = ws.hist.pop(); if (!a) return;
+  if (a.type === "rem") wsInstall(a.names, false);
+  else a.names.forEach((n) => { ws.out.set(n, ws.out.size); moveTo(ws.items[n], trayPos(ws.items[n], ws.out.size - 1)); });
+  wsRefresh(a.names[0]);
+}
+function wsAll() { wsInstall([...ws.out.keys()]); }
+
+/* ---------- Panel ---------- */
+function consequences(name) {
+  const [gid, own] = PARTS[name], g = GRP[gid], sv = SEV[g.sev], fx = computeFx(new Set([name]));
+  const yn = (b) => (b ? "No" : "Sí");
+  const brake = fx.brakeF <= 0.01 ? "No" : fx.brakeF < 1 ? "Menos" : "Sí";
+  const rel = [...new Set([...(DEPS[name] || []), ...g.rel.filter((n) => n !== name)])].filter((n) => PARTS[n] || M[n]);
+  return `<h2 class="title">${pretty(name)}</h2>
+    <p>${DESCRIPTIONS[name] || "Pieza mecánica de la moto."}</p>
+    <h3>¿Qué pasa si quitas esta pieza?</h3>
+    <span class="sev" style="background:${sv[1]}">${sv[0]}</span>
+    <p style="margin-top:8px"><b>${own}</b></p>
+    <ul><li><b>Funcionamiento:</b> ${g.fn}</li><li><b>Seguridad:</b> ${g.seg}</li><li><b>Mecánica:</b> ${g.mec}</li></ul>
+    <div class="yn"><span>¿Arranca?<b>${yn(fx.noStart)}</b></span><span>¿Rueda?<b>${yn(fx.noDrive || fx.noRoll)}</b></span><span>¿Frena?<b>${brake}</b></span></div>
+    ${rel.length ? `<h3>Piezas relacionadas afectadas</h3><div class="tags">${rel.slice(0, 8).map((n) => `<span class="chip">${pretty(n)}</span>`).join("")}</div>` : ""}
+    <div class="tip">${g.fact}</div>`;
+}
+const SEV_RANK = { leve: 1, moderado: 2, grave: 3, critico: 4 };
+function wsRefresh(focus) {
+  ws.fx = computeFx(new Set(ws.out.keys()));
+  const n = ws.out.size, f = ws.fx;
+  let top = null; ws.out.forEach((_, k) => { const sv = GRP[PARTS[k][0]].sev; if (!top || SEV_RANK[sv] > SEV_RANK[top]) top = sv; });
+  const brake = f.brakeF <= 0.01 ? "No" : f.brakeF < 1 ? "Menos" : "Sí";
+  $("#ws-banner .cnt").textContent = n ? `Faltan ${n} pieza${n > 1 ? "s" : ""}${top ? " · gravedad " + SEV[top][0].toLowerCase() : ""}` : "Moto completa";
+  wsBox.hidden = !ws.on;
+  if (ws.on) {
+    wsBox.innerHTML = `<div class="ws-head"><b>Modo taller</b><span class="ws-count">${n}</span><small>pieza${n === 1 ? "" : "s"} faltante${n === 1 ? "" : "s"}</small></div>
+      ${top ? `<div class="ws-state"><span class="sev" style="background:${SEV[top][1]}">Estado: ${SEV[top][0]}</span></div>` : ""}
+      <div class="yn"><span>¿Arranca?<b>${f.noStart ? "No" : "Sí"}</b></span><span>¿Rueda?<b>${f.noDrive || f.noRoll ? "No" : "Sí"}</b></span><span>¿Frena?<b>${brake}</b></span></div>
+      <div class="ws-legend"><span><i style="background:#5fd3a6"></i>Se desmonta</span><span><i style="background:#ffb020"></i>Solo informativa</span><span><i style="background:#6b7280"></i>Fija</span></div>
+      <div class="ws-hint">Arrastra una pieza para sacarla; arrástrala de vuelta (o tócala aquí) para ponerla. Para llegar a las internas, aísla un sistema.</div>
+      ${ws.tip ? `<div class="ws-tip">${ws.tip}</div>` : ""}
+      <div class="tags">${[...ws.out.keys()].map((k) => `<button class="chip" data-put="${k}" title="Tocar para poner">${pretty(k)} ✕</button>`).join("") || '<span class="ws-hint">No has quitado nada.</span>'}</div>
+      <div class="row-btns"><button class="chip" id="ws-undo" ${ws.hist.length ? "" : "disabled"}>Deshacer</button><button class="chip" id="ws-all" ${n ? "" : "disabled"}>Poner todo</button></div>
+      ${n ? `<div class="ws-sim">${[...new Set(RULES.filter((r) => r.p.some((x) => ws.out.has(x))).map((r) => r.m))].join(" ")}</div>` : ""}`;
+    wsBox.querySelectorAll("[data-put]").forEach((b) => b.addEventListener("click", () => { wsInstall([b.dataset.put]); }));
+    $("#ws-undo").addEventListener("click", wsUndo); $("#ws-all").addEventListener("click", wsAll);
+  }
+  document.querySelectorAll(".part-btn").forEach((b) => { const m = namedMeshes.find((x) => x.uuid === b.dataset.uuid); b.classList.toggle("off", !!(m && (!m.visible || ws.out.has(m.name)))); });
+  if (focus && ws.out.has(focus)) { $("#info-body").innerHTML = consequences(focus); $("#info").classList.add("show"); }
+}
+
+/* ---------- Arrastre (mouse y táctil) ---------- */
+function wsPick(e) {
+  const r = renderer.domElement.getBoundingClientRect();
+  pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  raycaster.setFromCamera(pointer, camera);
+}
+wrap.addEventListener("pointerdown", (e) => {
+  if (!ws.on || e.button > 0) return;
+  wsPick(e);
+  const hit = raycaster.intersectObjects(namedMeshes.filter((m) => m.visible && !m.userData.ghost), false)[0];
+  if (!hit) return;
+  const name = hit.object.name, lvl = levelOf(name);
+  if (lvl !== 1) {
+    ws.tip = lvl === 2 ? "Pieza informativa: puedes leerla, pero no se desmonta." : "Pieza decorativa: queda fija. Prueba con una pieza mecánica o aísla un sistema.";
+    wsRefresh(); return;
+  }
+  e.stopPropagation(); controls.enabled = false; tween = null;
+  const it = ws.items[name];
+  camera.getWorldDirection(tmpV); dragPlane.setFromNormalAndCoplanarPoint(tmpV.negate(), hit.point);
+  raycaster.ray.intersectPlane(dragPlane, hitV);
+  drag = { name, it, off: it.holder.position.clone().sub(hitV), moved: false, x: e.clientX, y: e.clientY, was: ws.out.has(name) };
+  it.anim = null;
+}, true);
+window.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  if (!drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;
+  drag.moved = true; wsPick(e);
+  if (raycaster.ray.intersectPlane(dragPlane, hitV)) drag.it.holder.position.copy(hitV.add(drag.off));
+});
+function endDrag() {
+  if (!drag) return;
+  const d = drag; drag = null; controls.enabled = true;
+  if (!d.moved) { const mesh = d.it.mesh; selectMesh(mesh, false); if (d.was) wsRefresh(d.name); return; }
+  const near = d.it.holder.position.length() < 0.22;
+  if (d.was) { if (near) wsInstall([d.name]); else moveTo(d.it, trayPos(d.it, ws.out.get(d.name))); }
+  else if (near) moveTo(d.it, new THREE.Vector3());
+  else wsRemove(d.name);
+}
+window.addEventListener("pointerup", endDrag);
+window.addEventListener("pointercancel", endDrag);
+
+/* ---------- Entrada y salida del taller (cámara, luces, bandeja, información) ---------- */
+const WS_VIEW = { t: new THREE.Vector3(-0.2, 0.75, 1.4), p: new THREE.Vector3(1.9, 1.25, -3.1) };
+const wsFxS = { k: 0, prev: null, introT: 0 };
+const wsMatTex = (() => { const c = document.createElement("canvas"); c.width = 512; c.height = 256; const g = c.getContext("2d");
+  g.fillStyle = "#1b1d21"; g.fillRect(0, 0, 512, 256); g.strokeStyle = "#f2c230"; g.lineWidth = 8; g.setLineDash([34, 18]); g.strokeRect(10, 10, 492, 236);
+  g.setLineDash([]); g.fillStyle = "#f2c230"; g.font = "700 28px system-ui, sans-serif"; g.textAlign = "center"; g.fillText("BANDEJA DE PIEZAS", 256, 138);
+  g.fillStyle = "rgba(255,255,255,.35)"; g.font = "16px system-ui, sans-serif"; g.fillText("las piezas que quites quedan aquí", 256, 168);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; })();
+const wsMatMesh = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 1.7), new THREE.MeshBasicMaterial({ map: wsMatTex, transparent: true, opacity: 0, depthWrite: false }));
+wsMatMesh.rotation.set(-Math.PI / 2, 0, Math.PI); wsMatMesh.position.set(0, 0.0016, -1.75); wsMatMesh.visible = false; scene.add(wsMatMesh);
+const wsSpot = new THREE.SpotLight(0xfff4dc, 0, 9, 0.75, 0.7, 2); wsSpot.position.set(0.4, 3.3, -0.6); wsSpot.target.position.set(0, 0.4, 0); scene.add(wsSpot, wsSpot.target);
+function wsFx(dt) {
+  const goal = ws.on ? 1 : 0, f = wsFxS;
+  f.k += Math.max(-dt / 0.8, Math.min(dt / 1.4, goal - f.k));
+  const e = f.k * f.k * (3 - 2 * f.k);
+  (workshop.userData.lamps || []).forEach((l) => { l.intensity = 9 + 6 * e; });
+  wsSpot.intensity = 14 * e;
+  wsMatMesh.material.opacity = 0.92 * e; wsMatMesh.visible = e > 0.01;
+}
+const wsBanner = $("#ws-banner"), wsTag = $("#ws-tag");
+let hoverM = null;
+function wsHoverClear() { if (hoverM) { setGlow(hoverM, 0, 0); hoverM = null; } wsTag.style.display = "none"; renderer.domElement.style.cursor = ""; }
+function wsEnter() {
+  ws.on = true; ws.tip = "";
+  wsFxS.prev = { t: controls.target.clone(), p: camera.position.clone() };
+  if (reduceMotion) { controls.target.copy(WS_VIEW.t); camera.position.copy(WS_VIEW.p); controls.update(); } else flyTo(WS_VIEW.t, WS_VIEW.p, 1.7);
+  $("#app").classList.add("ws-on"); wsBanner.classList.remove("mini");
+  clearTimeout(wsFxS.introT); wsFxS.introT = setTimeout(() => wsBanner.classList.add("mini"), 5500);
+  audio.unlock(); audio.shift(false);
+  if (window.innerWidth > 1080) $("#info").classList.add("show");
+}
+function wsExit() {
+  ws.on = false; wsHoverClear(); clearTimeout(wsFxS.introT);
+  const pv = wsFxS.prev || { t: HOME_TARGET, p: HOME_POS };
+  if (reduceMotion) { controls.target.copy(pv.t); camera.position.copy(pv.p); controls.update(); } else flyTo(pv.t, pv.p, 1.3);
+  $("#app").classList.remove("ws-on");
+}
+$("#btn-taller").addEventListener("click", () => {
+  if (ws.on) wsExit(); else wsEnter();
+  $("#btn-taller").textContent = ws.on ? "Salir del taller" : "Modo taller";
+  $("#btn-taller").classList.toggle("on", ws.on);
+  wsRefresh();
+});
+wsBanner.addEventListener("click", () => $("#info").classList.toggle("show"));
+wrap.addEventListener("pointerleave", wsHoverClear);
+wrap.addEventListener("pointermove", (e) => {
+  if (!ws.on || drag || e.pointerType === "touch") return;
+  wsPick(e);
+  const hit = raycaster.intersectObjects(namedMeshes.filter((m) => m.visible && !m.userData.ghost), false)[0];
+  const m = hit ? hit.object : null;
+  if (m !== hoverM) { if (hoverM) setGlow(hoverM, 0, 0); hoverM = m; }
+  if (!m) { wsTag.style.display = "none"; renderer.domElement.style.cursor = ""; return; }
+  const lvl = levelOf(m.name);
+  let txt, col;
+  if (lvl === 1) { setGlow(m, 0x2f9e72, 0.9); col = "#5fd3a6"; txt = ws.out.has(m.name) ? "Arrastra para poner" : "Arrastra para quitar"; }
+  else if (lvl === 2) { col = "#ffb020"; txt = "Solo informativa"; }
+  else { col = "#6b7280"; txt = "Pieza fija"; }
+  renderer.domElement.style.cursor = lvl === 1 ? "grab" : "";
+  wsTag.innerHTML = `<b style="color:${col}">●</b> ${pretty(m.name)} <span style="color:var(--muted)">· ${txt}</span>`;
+  wsTag.style.display = "block"; wsTag.style.left = e.clientX + 14 + "px"; wsTag.style.top = e.clientY + 14 + "px";
+});
+
+/* ------------------------------------------------------------------ *
+ *  Carga del modelo
+ * ------------------------------------------------------------------ */
+const loader = new GLTFLoader();
+new Response(new Blob([base64ToArrayBuffer(MODEL_B64)]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer().then((ab) => loader.parse(ab, "", (gltf) => {
+  scene.add(gltf.scene);
+  $("#loading").style.display = "none";
+  gltf.scene.traverse((child) => {
+    if (!child.isMesh) return;
+    child.material = child.material.clone();
+    const m = child.material;
+    m.userData.o = { transparent: m.transparent, opacity: m.opacity, depthWrite: m.depthWrite };
+    originalColors.set(child.uuid, m.color.clone());
+    originalEmissive.set(child.uuid, m.emissive.clone());
+    if (child.name) { namedMeshes.push(child); M[child.name] = child; }
+  });
+  namedMeshes.sort((a, b) => a.name.localeCompare(b.name));
+  setupRigs();
+  wsInit();
+  buildSystemList();
+  renderPartList();
+  simReady = true;
+}, (err) => {
+  $("#loading").textContent = "Error al cargar el modelo.";
+  console.error(err);
+}));
+
+/* ------------------------------------------------------------------ *
+ *  Bucle principal
+ * ------------------------------------------------------------------ */
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  if (simReady) { stepSim(dt); applySim(); updateHud(dt); wsAnim(dt); wsFx(dt); }
+  stepTween(dt);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>

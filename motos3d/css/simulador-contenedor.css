@@ -1,0 +1,7 @@
+/* simulador-contenedor.css — barra superior y marco que contiene el simulador 3D */
+/* ---------- Simulador ---------- */
+  #view-sim.active{display:flex;flex-direction:column;height:100vh}
+  .simbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+  #sim-frame{flex:1;width:100%;border:0;background:#eaf1ff}
+
+    .simbar .hint{font-size:14px}
