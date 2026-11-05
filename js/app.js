@@ -13,19 +13,20 @@
   }
 
   // Navega a una vista respetando la sesión y el rol (RBAC centralizado).
-  function go(view) {
+  // opts: datos para la vista destino (p. ej. { modo: "desafio", id } o { screen: "module", mod })
+  function go(view, opts) {
     const user = App.Auth.current();
     if (!user) return show("login");
-    if (!App.Auth.canAccess(user, view)) view = App.Auth.homeFor(user);
-    if (view === "student") App.Views.Student.render(user);
+    if (!App.Auth.canAccess(user, view)) { view = App.Auth.homeFor(user); opts = null; }
+    if (view === "simulator" && App.Views.Simulator.open(user, opts) === false) { view = App.Auth.homeFor(user); opts = null; }
+    if (view === "student") App.Views.Student.render(user, opts);
     if (view === "admin") App.Views.Admin.render(user);
-    if (view === "simulator") App.Views.Simulator.open(user);
     show(view);
   }
 
-  function home() {
+  function home(nav) {
     const user = App.Auth.current();
-    go(user ? App.Auth.homeFor(user) : "login");
+    go(user ? App.Auth.homeFor(user) : "login", nav);
   }
 
   function logout() {
@@ -38,11 +39,16 @@
   function boot() {
     App.Users.ensureSeed();
     App.Activity.ensureSeed();
+    App.Progress.ensureSeed();
 
     App.Views.Login.init(home);
     App.Views.Student.init();
     App.Views.Admin.init();
-    App.Views.Simulator.init(() => { App.Views.Simulator.close(); home(); });
+    App.Views.Simulator.init(() => {
+      const nav = App.Views.Simulator.takeReturn();   // si venía de un desafío, vuelve a su módulo
+      App.Views.Simulator.close();
+      home(nav);
+    });
 
     $$("[data-logout]").forEach((b) => b.addEventListener("click", logout));
     $$("[data-open-simulator]").forEach((b) => b.addEventListener("click", () => go("simulator")));

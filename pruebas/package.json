@@ -1,0 +1,6 @@
+{
+  "name": "pruebas-motos3d",
+  "private": true,
+  "scripts": { "test": "node curso.test.js && node desafios.test.js" },
+  "devDependencies": { "jsdom": "^26.0.0" }
+}

@@ -18,44 +18,68 @@ Cuentas de prueba (también hay atajos en la pantalla de acceso):
 
 Para reiniciar los datos de prueba, borra los datos del sitio en el navegador.
 
+## Qué hace la plataforma
+
+Curso virtual con **3 módulos progresivos** (básico, intermedio, avanzado). Cada módulo tiene 10 lecciones, 2 actividades, una evaluación de 10 preguntas y un desafío práctico en el simulador 3D.
+
+Para pasar al siguiente módulo el estudiante debe, en orden: completar lecciones y actividades → aprobar la evaluación (70 % o más, configurable) → superar el desafío práctico. Son **dos registros independientes** (evaluación y desafío); el módulo solo se completa con ambos.
+
+- **Estudiante:** tarjetas de módulos con 6 estados (Bloqueado, Disponible, En progreso, Evaluación pendiente, Desafío práctico pendiente, Completado y aprobado), lecciones, actividades, evaluación con navegación y retroalimentación, historial y simulador libre.
+- **Docente:** progreso académico por estudiante (detalle de intentos y desafíos, aviso de posibles dificultades), banco de preguntas (solo lectura), reportes, y prueba de los desafíos.
+- **Administrador:** todo lo anterior + edición del banco de preguntas y ajuste del porcentaje mínimo.
+
+### Los desafíos
+Cada desafío es un archivo de datos en `simulador/desafios/` (qué piezas faltan al empezar, pasos, pistas, mensajes de error). El motor `simulador/desafio-runtime.js` valida **condiciones**, no clics: pieza correcta seleccionada, pieza instalada, orden de montaje, motor que arranca/avanza/se mantiene estable, y que la moto quede completa al final. Las acciones incorrectas se explican, se pueden deshacer y se cuentan como errores.
+
+| Módulo | Desafío | Qué demuestra |
+|---|---|---|
+| 1 | La moto no arranca (falta la bujía) | Reconocer una pieza y su función |
+| 2 | El motor gira pero la moto no avanza (faltan piñón y cadena) | Seguir el recorrido de la fuerza y montar en orden |
+| 3 | Se apaga sola y se calienta (regulador + tapa del radiador) | Relacionar síntomas con componentes de dos sistemas y reparar una falla a la vez |
+
+**Crear un desafío nuevo:** copia `d1-bujia.js`, cambia el contenido y añade el `<script>` en `index.html` y `simulador/simulador.html`. No hay que tocar el motor ni el resto del simulador.
+
 ## Estructura y responsabilidades
 
 ```
 motos3d/
-├─ index.html                  Solo estructura (4 vistas: login, estudiante, admin, simulador)
-├─ css/
-│  ├─ base.css                 Colores, reinicio, botones y chips
-│  ├─ login.css                Pantalla de acceso
-│  ├─ dashboard.css            Menús de estudiante y administrador
-│  └─ simulador-contenedor.css Barra y marco que contiene el simulador
+├─ index.html                  Solo estructura (vistas: login, estudiante, admin, simulador)
+├─ css/                        base, login, dashboard, course (curso), simulador-contenedor
 ├─ js/
-│  ├─ core/                    Núcleo sin lógica de negocio
-│  │  ├─ config.js             Constantes (ruta del simulador, claves de almacenamiento)
-│  │  ├─ storage.js            ÚNICO lugar que usa localStorage/sessionStorage
-│  │  └─ utils.js              Helpers (escape de HTML, formato de fecha, correo)
-│  ├─ data/seed.js             Datos de demostración y contenido de ejemplo
+│  ├─ core/                    config (constantes), storage (ÚNICO lugar con localStorage), utils
+│  ├─ data/
+│  │  ├─ seed.js               Usuarios, guías y progreso de demostración
+│  │  └─ course.js             Módulos, lecciones, actividades y banco de preguntas inicial
 │  ├─ services/                Reglas de negocio (no tocan el DOM)
-│  │  ├─ auth.js               Login, sesión, roles (RBAC) y permisos por vista
-│  │  ├─ users.js              Alta, consulta y activar/desactivar estudiantes
-│  │  └─ activity.js           Historial de prácticas y datos de reportes
-│  ├─ ui/gauge.js              Tacómetro decorativo del login
-│  ├─ views/                   Una por pantalla: leen el DOM y llaman a los servicios
-│  │  ├─ login.view.js
-│  │  ├─ student.view.js
-│  │  ├─ admin.view.js
-│  │  └─ simulator.view.js     Abre el iframe y registra la práctica (con duración)
-│  └─ app.js                   Arranque y enrutador (decide qué vista ver según sesión y rol)
-└─ simulador/                  El simulador 3D, independiente de la autenticación
-   ├─ simulador.html           Interfaz y lógica del simulador
-   ├─ css/simulador.css        Estilos del simulador
-   └─ assets/
-      ├─ modelo-moto.js        Modelo 3D (GLB comprimido en base64) — datos, no editar
-      └─ sonido-arranque.js    Sonido del arranque (MP3 en base64) — datos, no editar
+│  │  ├─ auth.js               Login, sesión, roles y permisos
+│  │  ├─ users.js, activity.js Usuarios y prácticas
+│  │  ├─ progress.js           Estados de módulo, desbloqueos y resultados de desafíos
+│  │  ├─ exams.js              Banco, armado y calificación de evaluaciones, intentos
+│  │  └─ challenges.js         Consulta de definiciones de desafíos
+│  ├─ ui/                      gauge.js, components.js (barras, chips de estado)
+│  ├─ views/                   student, learn (lecciones/actividades), exam, admin, simulator, login
+│  └─ app.js                   Arranque y enrutador
+├─ simulador/
+│  ├─ simulador.html           Simulador 3D (+ 3 enganches mínimos para los desafíos)
+│  ├─ desafio-runtime.js       Motor de desafíos (solo se activa con ?modo=desafio)
+│  ├─ desafios/                registro.js + un archivo por desafío
+│  ├─ css/simulador.css, desafio.css
+│  └─ assets/                  Modelo 3D y sonido (datos, no editar)
+└─ pruebas/                    Pruebas automáticas (opcionales): npm install && npm test
 ```
 
-Flujo: `views` → `services` → `storage`. Las vistas nunca guardan datos directamente, y los servicios nunca tocan el DOM. Para pasar a un servidor real, solo se reescriben `storage.js` y los servicios.
+Flujo: `views` → `services` → `storage`. Para pasar a un servidor real solo se reescriben `storage.js` y los servicios.
+
+## Hoja de ruta
+
+1. ✅ Módulos, progresión y estados.
+2. ✅ Evaluaciones: 30 preguntas, calificación, intentos y umbral configurable.
+3. ✅ Desafíos con validador de objetivos.
+4. ⏳ Backend (MySQL + API REST con Node o PHP): contraseñas con hash, calificación, desbloqueos y resultados de desafíos validados en el servidor.
+5. ⏳ Reportes ampliados, gestión de lecciones/actividades desde el panel y guías paso a paso.
 
 ## Límites conocidos
 
-- Es una simulación del lado del navegador: las contraseñas están en texto plano en `seed.js` y cualquiera puede abrir `simulador/simulador.html` directamente. La protección real requiere un servidor (backend) y contraseñas con hash.
+- Todo se guarda en el navegador (`localStorage`). Por eso **no es seguro frente a trampas**: un estudiante con conocimientos podría modificar su progreso, y las calificaciones y los resultados de los desafíos se calculan en el navegador. Las reglas ya están separadas en `services/` para moverlas al servidor en la fase 4 (el simulador ya envía el registro de acciones del desafío para poder verificarlo allá). Las contraseñas están en texto plano en `seed.js`.
+- Los datos antiguos del navegador siguen funcionando; para ver el curso desde cero borra los datos del sitio.
 - Los scripts son clásicos (no módulos ES) para que todo funcione con doble clic. El script principal del simulador sigue dentro de `simulador.html` porque los módulos ES externos los bloquea el navegador al abrir archivos locales; si lo sirves con un servidor local (por ejemplo la extensión Live Server de VS Code) se puede separar también.

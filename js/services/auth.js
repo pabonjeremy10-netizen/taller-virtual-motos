@@ -9,6 +9,12 @@
 
   const isStaff = (user) => user.rol === "admin" || user.rol === "docente";
 
+  // Permisos finos por rol (el administrador puede todo; el docente consulta y supervisa).
+  const PERMISOS = {
+    admin: ["progreso.ver", "reportes.ver", "banco.ver", "banco.editar", "ajustes.editar", "usuarios.gestionar"],
+    docente: ["progreso.ver", "reportes.ver", "banco.ver", "usuarios.gestionar"]
+  };
+
   // Qué vistas puede abrir cada rol.
   const RULES = {
     student: (u) => u.rol === "estudiante",
@@ -18,6 +24,7 @@
 
   App.Auth = {
     isStaff,
+    can: (user, permiso) => !!user && (PERMISOS[user.rol] || []).includes(permiso),
     canAccess: (user, view) => !!user && !!RULES[view] && RULES[view](user),
     homeFor: (user) => (isStaff(user) ? "admin" : "student"),
 

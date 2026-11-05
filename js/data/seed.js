@@ -35,10 +35,22 @@
       ["Ruedas", "Neumático, rin y radios transmiten la tracción y soportan la carga."],
       ["Chasis y dirección", "Estructura que une todos los sistemas y permite girar."]
     ],
-    exams: [
-      ["Transmisión y embrague", "Pendiente"],
-      ["Frenos y suspensión", "Pendiente"],
-      ["Ciclo de cuatro tiempos", "Completada: 4,5 / 5"]
+    // Progreso de demostración: Carlos ya terminó el Módulo 1 y empezó el 2; Laura empieza de cero.
+    progress: () => {
+      const ids = (m, n) => Array.from({ length: n }, (_, i) => "m" + m + "-l" + (i + 1));
+      return {
+        2: {
+          1: { lecciones: ids(1, 10), actividades: ["m1-a1", "m1-a2"], evalAprobada: true, evalFecha: daysAgo(3), desafioAprobado: true, desafioFecha: daysAgo(2), completadoEn: daysAgo(2) },
+          2: { lecciones: ids(2, 3), actividades: [], evalAprobada: false, evalFecha: null, desafioAprobado: false, desafioFecha: null, completadoEn: null }
+        }
+      };
+    },
+    attempts: () => [
+      { id: 1, userId: 2, modulo: 1, fecha: daysAgo(4), preguntas: [], respuestas: {}, correctas: 6, total: 10, porcentaje: 60, umbral: 70, aprobado: false, duracionSeg: 380 },
+      { id: 2, userId: 2, modulo: 1, fecha: daysAgo(3), preguntas: [], respuestas: {}, correctas: 8, total: 10, porcentaje: 80, umbral: 70, aprobado: true, duracionSeg: 340 }
+    ],
+    challengeResults: () => [
+      { id: 1, userId: 2, modulo: 1, desafio: "desafio-1", fecha: daysAgo(2), ok: true, errores: 1, pistas: 1, duracionSeg: 410, acciones: 9 }
     ]
   };
 })(window.App);

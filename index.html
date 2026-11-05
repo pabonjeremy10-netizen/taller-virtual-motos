@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="css/login.css">
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/simulador-contenedor.css">
+<link rel="stylesheet" href="css/course.css">
 </head>
 <body>
 
@@ -49,21 +50,14 @@
 <div id="view-student" class="view" data-view="student">
   <header class="topbar">
     <div class="brand">Simulador de Motos <b>3D</b> · Estudiante</div>
+    <nav id="st-nav" class="stnav" aria-label="Secciones">
+      <button class="btn small" data-nav="home" aria-pressed="true">Mi curso</button>
+      <button class="btn small" data-nav="history" aria-pressed="false">Historial</button>
+      <button class="btn small" data-nav="guides" aria-pressed="false">Guías</button>
+    </nav>
     <div class="who"><span id="st-name"></span><button class="btn small" data-logout>Cerrar sesión</button></div>
   </header>
-  <div class="page">
-    <section class="welcome">
-      <h1 id="st-hello"></h1>
-      <p class="muted lead">Enciende el motor, cambia de marcha y desmonta piezas para ver qué pasa sin ellas.</p>
-      <button id="btn-sim-student" class="btn primary cta" data-open-simulator>Entrar al Simulador Interactivo de Motos 3D</button>
-    </section>
-    <div class="shortcuts">
-      <button class="shortcut" data-panel="guias" aria-pressed="false"><strong>Guías de mecánica y taller</strong><span class="muted">Qué hace cada sistema de la moto</span></button>
-      <button class="shortcut" data-panel="historial" aria-pressed="false"><strong>Historial de prácticas</strong><span class="muted">Tus sesiones en el simulador</span></button>
-      <button class="shortcut" data-panel="evaluaciones" aria-pressed="false"><strong>Evaluaciones</strong><span class="muted">Pruebas y calificaciones</span></button>
-    </div>
-    <section id="st-panel" class="panel" hidden></section>
-  </div>
+  <div class="page"><div id="st-main"></div></div>
 </div>
 
 <!-- ===================== VISTA: ADMINISTRADOR / DOCENTE ===================== -->
@@ -75,7 +69,10 @@
   <div class="page">
     <div class="tabs" role="tablist">
       <button role="tab" data-tab="usuarios" aria-selected="true">Gestión de usuarios</button>
-      <button role="tab" data-tab="reportes" aria-selected="false">Reportes de uso</button>
+      <button role="tab" data-tab="progreso" data-perm="progreso.ver" aria-selected="false">Progreso académico</button>
+      <button role="tab" data-tab="preguntas" data-perm="banco.ver" aria-selected="false">Banco de preguntas</button>
+      <button role="tab" data-tab="reportes" data-perm="reportes.ver" aria-selected="false">Reportes de uso</button>
+      <button role="tab" data-tab="ajustes" data-perm="ajustes.editar" aria-selected="false">Ajustes</button>
       <button role="tab" data-tab="simulador" aria-selected="false">Simulador</button>
     </div>
 
@@ -94,6 +91,36 @@
       </table></div>
     </section>
 
+    <section id="tab-progreso" class="panel panel-flush" hidden>
+      <h2>Progreso académico de los estudiantes</h2>
+      <div class="stats" id="prog-stats"></div>
+      <div id="prog-hard"></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Estudiante</th><th>Avance</th><th>Módulo 1</th><th>Módulo 2</th><th>Módulo 3</th><th>Mejor nota</th><th>Desafíos</th><th></th></tr></thead>
+        <tbody id="prog-body"></tbody>
+      </table></div>
+      <div id="prog-detail" class="detail"></div>
+    </section>
+
+    <section id="tab-preguntas" class="panel panel-flush" hidden>
+      <h2>Banco de preguntas</h2>
+      <div class="qbar">
+        <label class="field"><span>Módulo</span><select id="q-mod"></select></label>
+        <button class="btn primary" id="q-add">Agregar pregunta</button>
+        <button class="btn" id="q-reset">Restablecer banco original</button>
+      </div>
+      <p id="q-count" class="muted"></p>
+      <ul id="q-list" class="qlist"></ul>
+      <div id="q-editor"></div>
+    </section>
+
+    <section id="tab-ajustes" class="panel panel-flush" hidden>
+      <h2>Ajustes del curso</h2>
+      <label class="field" style="max-width:260px"><span>Porcentaje mínimo para aprobar una evaluación</span><input id="set-umbral" type="number" min="1" max="100"></label>
+      <button class="btn primary" id="set-save" style="margin-top:10px">Guardar</button>
+      <p id="set-msg" class="msg" role="status"></p>
+    </section>
+
     <section id="tab-reportes" class="panel panel-flush" hidden>
       <h2>Reportes de uso del simulador</h2>
       <div class="stats" id="stats"></div>
@@ -107,6 +134,9 @@
       <h2>Simulador en modo supervisión</h2>
       <p class="muted">Abre el simulador para probarlo o revisar lo que ven los estudiantes. Estas visitas no se cuentan en los reportes.</p>
       <button id="btn-sim-admin" class="btn primary" data-open-simulator>Abrir simulador en modo supervisión</button>
+      <h3 style="margin-top:18px">Probar los desafíos</h3>
+      <p class="muted">Ábrelos tal como los ve el estudiante. El resultado no se registra.</p>
+      <div id="chal-preview" class="cta-row"></div>
     </section>
   </div>
 </div>
@@ -123,16 +153,27 @@
 
 <!-- Scripts en orden de dependencia: núcleo → datos → servicios → interfaz → vistas → arranque.
      Son scripts clásicos (no módulos) para que funcionen al abrir index.html con doble clic. -->
+<script src="simulador/desafios/registro.js"></script>
+<script src="simulador/desafios/d1-bujia.js"></script>
+<script src="simulador/desafios/d2-transmision.js"></script>
+<script src="simulador/desafios/d3-falla-combinada.js"></script>
 <script src="js/core/config.js"></script>
 <script src="js/core/storage.js"></script>
 <script src="js/core/utils.js"></script>
 <script src="js/data/seed.js"></script>
+<script src="js/data/course.js"></script>
 <script src="js/services/users.js"></script>
 <script src="js/services/activity.js"></script>
 <script src="js/services/auth.js"></script>
+<script src="js/services/challenges.js"></script>
+<script src="js/services/progress.js"></script>
+<script src="js/services/exams.js"></script>
 <script src="js/ui/gauge.js"></script>
+<script src="js/ui/components.js"></script>
 <script src="js/views/login.view.js"></script>
 <script src="js/views/student.view.js"></script>
+<script src="js/views/learn.view.js"></script>
+<script src="js/views/exam.view.js"></script>
 <script src="js/views/admin.view.js"></script>
 <script src="js/views/simulator.view.js"></script>
 <script src="js/app.js"></script>

@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/simulador.css">
+<link rel="stylesheet" href="css/desafio.css">
 </head>
 <body>
 <div id="ws-tag"></div>
@@ -543,6 +544,7 @@ function selectMesh(mesh, fromList) {
   renderPartInfo(mesh);
   if (fromList) { mesh.visible = true; namedMeshes.forEach((m) => setGhost(m, m !== mesh)); focusMeshes([mesh]); }
   $("#info").classList.add("show");
+  window.dispatchEvent(new CustomEvent("sim-select", { detail: mesh.name }));
 }
 
 /* Clic en el modelo (se ignora si fue un arrastre) */
@@ -1520,6 +1522,7 @@ function wsRefresh(focus) {
   }
   document.querySelectorAll(".part-btn").forEach((b) => { const m = namedMeshes.find((x) => x.uuid === b.dataset.uuid); b.classList.toggle("off", !!(m && (!m.visible || ws.out.has(m.name)))); });
   if (focus && ws.out.has(focus)) { $("#info-body").innerHTML = consequences(focus); $("#info").classList.add("show"); }
+  window.dispatchEvent(new Event("ws-change"));
 }
 
 /* ---------- Arrastre (mouse y táctil) ---------- */
@@ -1655,6 +1658,9 @@ new Response(new Blob([base64ToArrayBuffer(MODEL_B64)]).stream().pipeThrough(new
 /* ------------------------------------------------------------------ *
  *  Bucle principal
  * ------------------------------------------------------------------ */
+/* Puente para los desafíos (simulador/desafio-runtime.js). No cambia el comportamiento del simulador. */
+window.__sim = { ws, sim, DEPS, PARTS, pretty, levelOf, wsEnter, wsRemove, wsInstall, wsUndo, wsRefresh, isReady: () => simReady };
+
 const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
@@ -1666,5 +1672,10 @@ function animate() {
 }
 animate();
 </script>
+<script src="desafios/registro.js"></script>
+<script src="desafios/d1-bujia.js"></script>
+<script src="desafios/d2-transmision.js"></script>
+<script src="desafios/d3-falla-combinada.js"></script>
+<script src="desafio-runtime.js"></script>
 </body>
 </html>

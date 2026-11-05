@@ -1,0 +1,40 @@
+/* desafio.css — interfaz del modo desafío dentro del simulador */
+#dz-root{position:absolute;inset:0;pointer-events:none;z-index:40;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#dz-root>*{pointer-events:auto}
+.dz-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(10,12,16,.82);overflow:auto}
+.dz-overlay[hidden],#dz-panel[hidden]{display:none}
+.dz-card{width:min(560px,100%);background:var(--panel,#1c1f25);border:1px solid var(--border,#2c3038);border-radius:14px;padding:22px;color:var(--text,#f0f0ee);max-height:100%;overflow:auto}
+.dz-card h2{margin:8px 0 4px;font-size:22px}.dz-card h3{margin:14px 0 4px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted,#98a0ab)}
+.dz-card p{margin:4px 0;line-height:1.5}.dz-card ul{margin:4px 0;padding-left:20px;line-height:1.5}
+.dz-card-ok{border-color:#2f9e72;text-align:center}.dz-big{font-size:48px}
+.dz-chip{display:inline-block;background:#2f6bff;color:#fff;border-radius:99px;font-size:12px;font-weight:600;padding:2px 10px}
+.dz-note{color:var(--muted,#98a0ab);font-size:14px}
+.dz-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.dz-card-ok .dz-row{justify-content:center}
+.dz-btn{background:var(--panel2,#262a33);border:1px solid var(--border,#2c3038);color:var(--text,#f0f0ee);border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer}
+.dz-btn:hover:not(:disabled){border-color:var(--accent,#ffb020)}.dz-btn:disabled{opacity:.55;cursor:wait}
+.dz-btn.primary{background:var(--accent,#ffb020);border-color:var(--accent,#ffb020);color:#1a1200;font-weight:700}
+.dz-btn.ghost{background:transparent}
+.dz-stats{display:flex;justify-content:center;gap:12px;margin:14px 0}.dz-stats span{background:var(--panel2,#262a33);border-radius:10px;padding:8px 16px;font-size:12px;color:var(--muted,#98a0ab)}
+.dz-stats b{display:block;font-size:22px;color:var(--ok,#5fd3a6)}
+#dz-panel{position:absolute;top:66px;left:50%;transform:translateX(-50%);width:min(600px,calc(100% - 24px));background:rgba(28,31,37,.96);border:1px solid var(--border,#2c3038);border-radius:12px;color:var(--text,#f0f0ee);box-shadow:0 8px 28px rgba(0,0,0,.4)}
+.dz-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px}.dz-head strong{display:block;margin-top:2px;font-size:15px}
+.dz-fold{background:none;border:0;color:var(--muted,#98a0ab);font-size:18px;cursor:pointer}
+#dz-panel.fold .dz-body{display:none}
+.dz-body{padding:0 12px 12px;max-height:min(58vh,520px);overflow:auto}
+.dz-steps{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.dz-steps li{display:flex;gap:8px;font-size:13px;line-height:1.4;color:var(--muted,#98a0ab)}
+.dz-steps li.now{color:var(--text,#f0f0ee);font-weight:600}.dz-steps li.done{color:var(--ok,#5fd3a6)}
+.dz-dot{flex:none;width:20px;height:20px;border-radius:50%;border:1px solid currentColor;display:grid;place-items:center;font-size:11px}
+.dz-steps li.now .dz-dot{background:var(--accent,#ffb020);border-color:var(--accent,#ffb020);color:#1a1200}
+.dz-msg{margin-top:10px;border-radius:8px;padding:9px 11px;font-size:13px;line-height:1.45;border:1px solid}
+.dz-msg.ok{background:rgba(95,211,166,.12);border-color:#2f9e72;color:#bff0dc}
+.dz-msg.bad{background:rgba(255,90,60,.12);border-color:#ff5a3c;color:#ffc7bb}
+.dz-msg.warn{background:rgba(255,176,32,.12);border-color:#b97d00;color:#ffe2a8}
+.dz-msg.hint{background:rgba(47,107,255,.14);border-color:#2f6bff;color:#cfe0ff}
+.dz-sel{margin-top:10px;font-size:12px;color:var(--muted,#98a0ab)}.dz-sel b{color:var(--text,#f0f0ee)}
+.dz-hold{height:6px;background:var(--panel2,#262a33);border-radius:4px;margin-top:8px;overflow:hidden}.dz-hold i{display:block;height:100%;width:0;background:var(--ok,#5fd3a6)}
+.dz-foot{display:flex;gap:14px;margin-top:10px;font-size:12px;color:var(--muted,#98a0ab)}.dz-foot b{color:var(--text,#f0f0ee)}
+/* En el desafío no se revela qué piezas faltan */
+#app.dz-on #ws-box{display:none}
+#app.dz-on .part-btn.off{opacity:1}
+@media (max-width:700px){#dz-panel{top:60px}.dz-body{max-height:44vh}}
